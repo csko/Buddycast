@@ -1,7 +1,9 @@
 package buddycast;
 
+import peersim.config.FastConfig;
 import peersim.core.*;
 import peersim.edsim.EDProtocol;
+import peersim.transport.Transport;
 
 /**
  * Event driven version of the BuddyCast protocol.
@@ -10,10 +12,11 @@ public class BuddyCast
         implements EDProtocol {
 
     private String prefix;
-/**
- * 
- * @param prefix
- */
+
+    /**
+     *
+     * @param prefix
+     */
     public BuddyCast(String prefix) {
         this.prefix = prefix;
     }
@@ -25,6 +28,25 @@ public class BuddyCast
      * @param event
      */
     public void processEvent(Node node, int pid, Object event) {
+        System.err.println("EVENT: " + node + " - " + pid + " " + event);
+
+        Linkable linkable = (Linkable) node.getProtocol(FastConfig.getLinkable(pid));
+
+        if (linkable.degree() > 0) {
+            Node peern = linkable.getNeighbor(CommonState.r.nextInt(linkable.degree()));
+
+            if (!peern.isUp()) {
+                return;
+            }
+
+            BuddyCast peer = (BuddyCast) peern.getProtocol(pid);
+
+            ((Transport) node.getProtocol(FastConfig.getTransport(pid))).send(
+                    node,
+                    peern,
+                    new BuddyCast(prefix),
+                    pid);
+        }
     }
 
     /**
