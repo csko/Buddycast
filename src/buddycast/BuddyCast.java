@@ -1,5 +1,10 @@
 package buddycast;
 
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.*;
+import java.util.HashMap;
+import java.util.List;
 import peersim.config.FastConfig;
 import peersim.core.*;
 import peersim.edsim.EDProtocol;
@@ -61,5 +66,83 @@ public class BuddyCast
         } catch (CloneNotSupportedException e) {
         } // never happens
         return bc;
+    }
+
+    /* Connectible taste buddies */
+    List<TasteBuddy> connT;
+    /* Connectible random buddies */
+    List<Node> connR;
+    /* Unconnectible taste buddies */
+    List<Node> unconnT;
+    /* Connection Candidates */
+    HashMap candidates; // Peer ID, similarity
+    List<Node> recv_block_list; // id, timestamp
+    List<Node> send_block_list; // id, timestamp
+
+    /**
+     * Protocol related functions
+     */
+    public ArrayList selectRecentPeers(int number) {
+        return new ArrayList();
+    }
+
+    public void sendBuddyCastMessage(int targetName) {
+        /**
+         *  TODO: connect to peer
+         */
+        /**
+         * Remove from connection candidates if it was in that list.
+         */
+        removeCandidate(targetName);
+
+        /**
+         * We wont' be sending messages to this peer for a while.
+         */
+        blockPeer(targetName);
+    }
+
+    private void removeCandidate(int targetName) {
+        candidates.remove(targetName);
+    }
+
+    private void blockPeer(int targetName) {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    /**
+     * Selects the most similar taste buddy from the connection candidates list.
+     * @return The ID of the peer.
+     */
+    private int selectTasteBuddy() {
+        int maxId = -1; /* The id of the buddy */
+        int maxSimilarity = -1; /* The similarity of the buddy */
+        Iterator ids = candidates.keySet().iterator();
+        while (ids.hasNext()) {
+            Integer id = (Integer) ids.next();
+            Integer similarity = (Integer) candidates.get(id);
+            if (similarity > maxSimilarity) {
+                maxId = id;
+                maxSimilarity = similarity;
+            }
+        }
+        return maxId;
+    }
+
+    /**
+     * Selects a random peer from the connection candidates list.
+     * @return The ID of the peer.
+     */
+    private int selectRandomPeer() {
+        int i = 0;
+        int r = CommonState.r.nextInt(candidates.size());
+        Iterator ids = candidates.keySet().iterator();
+        while (ids.hasNext()) {
+            Integer id = (Integer) ids.next();
+            if (i == r) {
+                return id;
+            }
+            i++;
+        }
+        return -1;
     }
 }
