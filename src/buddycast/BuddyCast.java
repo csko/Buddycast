@@ -20,6 +20,7 @@ public class BuddyCast
     private String prefix;
     private final int maxConnRandPeers = 10;
     private final double alpha = 0.5;
+    private final long block_interval = 10000; /* TODO */
 
     /**
      *
@@ -74,20 +75,20 @@ public class BuddyCast
     /* Connectible taste buddies */
     List<TasteBuddy> connT;
     /* Connectible random buddies */
-    HashMap connR; // Peer ID, last seen
+    Hashtable<Integer, Long> connR; // Peer ID, last seen
     /* Unconnectible taste buddies */
     List<Node> unconnT;
     /* Connection Candidates */
-    HashMap candidates; // Peer ID, similarity
-    List<Node> recv_block_list; // id, timestamp
-    List<Node> send_block_list; // id, timestamp
+    Hashtable<Integer, Integer> candidates; // Peer ID, similarity
+    Hashtable<Integer, Long> recv_block_list; // id, timestamp
+    Hashtable<Integer, Long> send_block_list; // id, timestamp
     boolean connectible;
 
     /**
      * Protocol related functions
      */
     public ArrayList selectRecentPeers(int number) {
-        return new ArrayList();
+        return new ArrayList(); /* TODO */
     }
 
     public void sendBuddyCastMessage(int targetName) {
@@ -102,15 +103,11 @@ public class BuddyCast
         /**
          * We wont' be sending messages to this peer for a while.
          */
-        blockPeer(targetName);
+        blockPeer(targetName, recv_block_list);
     }
 
     private void removeCandidate(int targetName) {
         candidates.remove(targetName);
-    }
-
-    private void blockPeer(int targetName) {
-        throw new UnsupportedOperationException("Not yet implemented");
     }
 
     /**
@@ -122,9 +119,9 @@ public class BuddyCast
         if (candidates.isEmpty()) {
             return targetName; // no target
         }
-        int r = CommonState.r.nextInt(10);  // [0.9] random number
+        double r = CommonState.r.nextDouble();  // [0, 1) uniformly
 
-        if (r < (int) alpha * 10) {  /* Select a taste buddy */
+        if (r < alpha) {  /* Select a taste buddy */
             targetName = selectTasteBuddy();
         } else { /* Select a random peer */
             targetName = selectRandomPeer();
@@ -201,8 +198,9 @@ public class BuddyCast
         } else { /* We want more peers than available, let's return them all */
             Iterator i = connR.keySet().iterator();
             while (i.hasNext()) { /* Copy all the peers */
-                if ((Integer) i.next() != targetName) { /* Not including targetName */
-                    randomPeers.put(i.next(), now); /* Update last seen time */
+                Integer id = (Integer) i.next();
+                if (id != targetName) { /* Not including targetName */
+                    randomPeers.put(id, now); /* Update last seen time */
                 }
             }
         }
@@ -214,5 +212,22 @@ public class BuddyCast
         //ArrayList prefsCopy = getMyPreferences(0);
 
         return sim;
+    }
+
+    private boolean isBlocked(int peerName, Hashtable<Integer, Long> list) {
+        /* peer_name is not on block_list */
+        if (!list.containsKey(peerName)) {
+            return false;
+        }
+
+        if (new Date().getTime() >= list.get(peerName)) {
+            list.remove(peerName);
+            return false;
+        }
+        return true;
+    }
+
+    private void blockPeer(int peerName, Hashtable<Integer, Long> list) {
+        list.put(peerName, new Date().getTime() + block_interval);
     }
 }
