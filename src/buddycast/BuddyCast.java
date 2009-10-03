@@ -1,7 +1,5 @@
 package buddycast;
 
-import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.*;
 import java.util.HashMap;
 import java.util.List;
@@ -16,7 +14,12 @@ import peersim.transport.Transport;
 public class BuddyCast
         implements EDProtocol {
 
+    /**
+     * TODO: change HashMap to Hashtable
+     */
     private String prefix;
+    private final int maxConnRandPeers = 10;
+    private final double alpha = 0.5;
 
     /**
      *
@@ -71,13 +74,14 @@ public class BuddyCast
     /* Connectible taste buddies */
     List<TasteBuddy> connT;
     /* Connectible random buddies */
-    List<Node> connR;
+    HashMap connR; // Peer ID, last seen
     /* Unconnectible taste buddies */
     List<Node> unconnT;
     /* Connection Candidates */
     HashMap candidates; // Peer ID, similarity
     List<Node> recv_block_list; // id, timestamp
     List<Node> send_block_list; // id, timestamp
+    boolean connectible;
 
     /**
      * Protocol related functions
@@ -107,6 +111,26 @@ public class BuddyCast
 
     private void blockPeer(int targetName) {
         throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    /**
+     * Select a taste buddy or a random peer from the connection candidate list.
+     * @param alpha from [0, 1) is the weight factor between randomness and taste (smaller alpha -> more randomness).
+     */
+    private int tasteSelectTarget(double alpha) {
+        int targetName = -1;
+        if (candidates.isEmpty()) {
+            return targetName; // no target
+        }
+        int r = CommonState.r.nextInt(10);  // [0.9] random number
+
+        if (r < (int) alpha * 10) {  /* Select a taste buddy */
+            targetName = selectTasteBuddy();
+        } else { /* Select a random peer */
+            targetName = selectRandomPeer();
+        }
+        return targetName;
+
     }
 
     /**
@@ -144,5 +168,51 @@ public class BuddyCast
             i++;
         }
         return -1;
+    }
+
+    private BuddyCastMessage createBuddyCastMessage(int targetName) {
+        BuddyCastMessage msg = new BuddyCastMessage();
+        //msg.myPrefs = getMyPreferences(num_myprefs);
+        //msg.randomPeers = getRandomPeers(num_rps, targetName);
+        msg.connectible = connectible;
+        return msg;
+    }
+
+    /**
+     * Returns random peers not including the targetName peer.
+     * @param num The number of random peers returned (at most).
+     * @param targetName Not including this peer.
+     * @return The random peers.
+     */
+    private HashMap getRandomPeers(int num, int targetName) {
+        HashMap randomPeers = new HashMap(); // peer ID, long timestamp
+        Long now = new Date().getTime();
+
+        /* We don't want more peers than available, let's pick some of them */
+        if (num <= maxConnRandPeers) {
+            ArrayList ids = new ArrayList(connR.keySet());
+            ids.remove((Integer) targetName); /* Not including targetName */
+            Collections.shuffle(ids, CommonState.r);
+            Iterator i = ids.iterator();
+            for (int n = 0; n < num && i.hasNext(); n++) {
+                Integer id = (Integer) i.next();
+                randomPeers.put(id, now);
+            }
+        } else { /* We want more peers than available, let's return them all */
+            Iterator i = connR.keySet().iterator();
+            while (i.hasNext()) { /* Copy all the peers */
+                if ((Integer) i.next() != targetName) { /* Not including targetName */
+                    randomPeers.put(i.next(), now); /* Update last seen time */
+                }
+            }
+        }
+        return randomPeers;
+    }
+
+    private int getSimilarity(int peerName) {
+        int sim = 0;
+        //ArrayList prefsCopy = getMyPreferences(0);
+
+        return sim;
     }
 }
