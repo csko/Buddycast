@@ -1,8 +1,8 @@
 package buddycast;
 
+import java.util.Deque;
+import java.util.Hashtable;
 import java.util.List;
-import java.util.PriorityQueue;
-import peersim.core.Node;
 
 /**
  *
@@ -10,10 +10,13 @@ import peersim.core.Node;
  */
 public class BuddyCastMessage {
 
+    public BuddyCastMessage() {
+    }
+
     /**
      * The most recent 50 preferences of the active peer
      */
-    PriorityQueue myPrefs;
+    Deque<Integer> myPrefs;
     /**
      * The list of taste buddies
      */
@@ -21,7 +24,7 @@ public class BuddyCastMessage {
     /**
      * The list of random peers
      */
-    List<Node> randomPeers;
+    Hashtable<Integer, Long> randomPeers;
     /**
      * True, if the client is connectible;
      */

@@ -1,7 +1,7 @@
 package buddycast;
 
 import java.util.*;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import peersim.config.FastConfig;
 import peersim.core.*;
@@ -19,8 +19,17 @@ public class BuddyCast
      */
     private String prefix;
     private final int maxConnRandPeers = 10;
+    private final int numMyPrefs = 50;
+    /**
+     * The exploration-to-exploitation ratio.
+     */
     private final double alpha = 0.5;
     private final long block_interval = 10000; /* TODO */
+
+    /**
+     * The number of random peers in a message.
+     */
+    private final int num_rps = 10;
 
     /**
      *
@@ -28,6 +37,17 @@ public class BuddyCast
      */
     public BuddyCast(String prefix) {
         this.prefix = prefix;
+        /* Initialization of the collections*/
+        connT = new ArrayList<TasteBuddy>();
+        connR = new Hashtable<Integer, Long>();
+        unconnT = new ArrayList<Node>();
+        candidates = new Hashtable<Integer, Integer>();
+        recv_block_list = new Hashtable<Integer, Long>();
+        send_block_list = new Hashtable<Integer, Long>();
+        /* Always connectible */
+        connectible = true;
+        myPreferences = new ArrayDeque<Integer>();
+        peerPreferences = new Hashtable<Integer, Deque<Integer>>();
     }
 
     /**
@@ -80,9 +100,40 @@ public class BuddyCast
     List<Node> unconnT;
     /* Connection Candidates */
     Hashtable<Integer, Integer> candidates; // Peer ID, similarity
-    Hashtable<Integer, Long> recv_block_list; // id, timestamp
-    Hashtable<Integer, Long> send_block_list; // id, timestamp
+    /* TODO: priority queue and set? */
+    Hashtable<Integer, Long> recv_block_list; // Peer ID, timestamp
+    Hashtable<Integer, Long> send_block_list; // Peer ID, timestamp
     boolean connectible;
+    /**
+     * My preferences.
+     */
+    Deque<Integer> myPreferences;
+    Hashtable<Integer, Deque<Integer>> peerPreferences;
+
+    public void work() {
+        /**
+         * TODO: wait(DT time units) {15 seconds in current implementation}
+         */
+        /**
+         * Remove any peer from the receive and send block lists
+         * if its time was expired.
+         */
+        updateBlockLists();
+
+        /**
+         * TODO: If C_C is empty, do bootstrapping
+         * select 5 peers from megacache
+         */
+        int peer = tasteSelectTarget(alpha);
+        /**
+         * TODO: connectPeer(peer);
+         */
+        blockPeer(peer, send_block_list);
+
+    /**
+     * TODO: remove Q from C_C
+     */
+    }
 
     /**
      * Protocol related functions
@@ -169,8 +220,8 @@ public class BuddyCast
 
     private BuddyCastMessage createBuddyCastMessage(int targetName) {
         BuddyCastMessage msg = new BuddyCastMessage();
-        //msg.myPrefs = getMyPreferences(num_myprefs);
-        //msg.randomPeers = getRandomPeers(num_rps, targetName);
+        msg.myPrefs = getMyPreferences(numMyPrefs);
+        msg.randomPeers = getRandomPeers(num_rps, targetName);
         msg.connectible = connectible;
         return msg;
     }
@@ -181,8 +232,8 @@ public class BuddyCast
      * @param targetName Not including this peer.
      * @return The random peers.
      */
-    private HashMap getRandomPeers(int num, int targetName) {
-        HashMap randomPeers = new HashMap(); // peer ID, long timestamp
+    private Hashtable<Integer, Long> getRandomPeers(int num, int targetName) {
+        Hashtable<Integer, Long> randomPeers = new Hashtable<Integer, Long>(); // peer ID, long timestamp
         Long now = new Date().getTime();
 
         /* We don't want more peers than available, let's pick some of them */
@@ -209,13 +260,40 @@ public class BuddyCast
 
     private int getSimilarity(int peerName) {
         int sim = 0;
-        //ArrayList prefsCopy = getMyPreferences(0);
+        Iterator it = myPreferences.iterator();
+        Deque<Integer> peerPrefList = getPrefList(peerName);
+        while (it.hasNext()) {
+            Integer pref = (Integer) it.next();
+            if (peerPrefList.contains(pref)) {
+                sim++;
+            }
+        }
+        if (sim == 0) {
+            return 0;
+        }
+        return (int) (1000 * (double) (sim) / Math.sqrt(myPreferences.size() * peerPrefList.size()));
+    }
 
-        return sim;
+    private Deque<Integer> getMyPreferences(int num) {
+        /* TODO: update my preferences */
+        if (num == 0) {
+            return myPreferences;
+        } else {
+            ArrayDeque<Integer> result = new ArrayDeque<Integer>();
+            Iterator it = myPreferences.descendingIterator();
+            for (int i = 0; i < num && it.hasNext(); i++) {
+                result.add((Integer) it.next());
+            }
+            return result;
+        }
+    }
+
+    Deque<Integer> getPrefList(int peerName) {
+        return peerPreferences.get(peerName);
     }
 
     private boolean isBlocked(int peerName, Hashtable<Integer, Long> list) {
-        /* peer_name is not on block_list */
+        /* peerName is not on block_list */
         if (!list.containsKey(peerName)) {
             return false;
         }
@@ -229,5 +307,26 @@ public class BuddyCast
 
     private void blockPeer(int peerName, Hashtable<Integer, Long> list) {
         list.put(peerName, new Date().getTime() + block_interval);
+    }
+
+    private void updateBlockLists() {
+        Long now = new Date().getTime();
+
+        Iterator i = send_block_list.entrySet().iterator();
+        while (i.hasNext()) {
+            Long timestamp = (Long) i.next();
+            if (now >= timestamp) {
+                i.remove();
+            }
+        }
+
+        i = recv_block_list.entrySet().iterator();
+        while (i.hasNext()) {
+            Long timestamp = (Long) i.next();
+            if (now >= timestamp) {
+                i.remove();
+            }
+        }
+
     }
 }
