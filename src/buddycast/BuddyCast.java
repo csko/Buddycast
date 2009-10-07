@@ -124,15 +124,29 @@ public class BuddyCast
          * TODO: If C_C is empty, do bootstrapping
          * select 5 peers from megacache
          */
-        int peer = tasteSelectTarget(alpha);
         /**
-         * TODO: connectPeer(peer);
+         * Select the Q peer.
+         */
+        int peer = tasteSelectTarget(alpha);
+        int response = connectPeer(peer);
+        /**
+         * Remove from connection candidates if it was in that list.
+         */
+        removeCandidate(peer);
+
+        /**
+         * We wont' be sending messages to this peer for a while.
          */
         blockPeer(peer, send_block_list);
+        if(response == 0){ /* If connected successfully */
+            BuddyCastMessage msg =  createBuddyCastMessage(peer);
+            /**
+             *  TODO: send message
+             */
+            
+            
+        }
 
-    /**
-     * TODO: remove Q from C_C
-     */
     }
 
     /**
@@ -142,19 +156,8 @@ public class BuddyCast
         return new ArrayList(); /* TODO */
     }
 
-    public void sendBuddyCastMessage(int targetName) {
-        /**
-         *  TODO: connect to peer
-         */
-        /**
-         * Remove from connection candidates if it was in that list.
-         */
-        removeCandidate(targetName);
-
-        /**
-         * We wont' be sending messages to this peer for a while.
-         */
-        blockPeer(targetName, recv_block_list);
+    private int connectPeer(int targetName) {
+        return 0; /* TODO */
     }
 
     private void removeCandidate(int targetName) {
