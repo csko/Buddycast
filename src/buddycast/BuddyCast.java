@@ -12,12 +12,12 @@ import peersim.transport.Transport;
  * Event driven version of the BuddyCast protocol.
  */
 public class BuddyCast
-        implements EDProtocol {
+        implements EDProtocol, Linkable {
 
-    /**
-     * TODO: change HashMap to Hashtable
-     */
     private String prefix;
+    /**
+     * Constants. TODO: make them changeable via parameters.
+     */
     private final int maxConnRandPeers = 10;
     private final int numMyPrefs = 50;
     /**
@@ -30,6 +30,38 @@ public class BuddyCast
      * The number of random peers in a message.
      */
     private final int num_rps = 10;
+    /**
+     * Peer containers.
+     */
+    /**
+     * These three containers make up the Connection List C_C.
+     */
+    /* Connectible taste buddies */
+    List<TasteBuddy> connT;
+    /* Connectible random peers */
+    Hashtable<Integer, Long> connR; // Peer ID, last seen
+    /* Unconnectible taste buddies */
+    List<Node> unconnT;
+    /* Connection Candidates */
+    Hashtable<Integer, Integer> candidates; // Peer ID, similarity
+    /* TODO: priority queue and set? */
+    /**
+     * Block lists.
+     */
+    Hashtable<Integer, Long> recv_block_list; // Peer ID, timestamp
+    Hashtable<Integer, Long> send_block_list; // Peer ID, timestamp
+    /**
+     * Are we connectible?
+     */
+    boolean connectible;
+    /**
+     * My preferences.
+     */
+    Deque<Integer> myPreferences;
+    /**
+     * Peer preferences.
+     */
+    Hashtable<Integer, Deque<Integer>> peerPreferences;
 
     /**
      *
@@ -37,7 +69,7 @@ public class BuddyCast
      */
     public BuddyCast(String prefix) {
         this.prefix = prefix;
-        /* Initialization of the collections*/
+        /* Initialization of the collections */
         connT = new ArrayList<TasteBuddy>();
         connR = new Hashtable<Integer, Long>();
         unconnT = new ArrayList<Node>();
@@ -88,27 +120,9 @@ public class BuddyCast
         try {
             bc = (BuddyCast) super.clone();
         } catch (CloneNotSupportedException e) {
-        } // never happens
+        } // This never happens.
         return bc;
     }
-
-    /* Connectible taste buddies */
-    List<TasteBuddy> connT;
-    /* Connectible random buddies */
-    Hashtable<Integer, Long> connR; // Peer ID, last seen
-    /* Unconnectible taste buddies */
-    List<Node> unconnT;
-    /* Connection Candidates */
-    Hashtable<Integer, Integer> candidates; // Peer ID, similarity
-    /* TODO: priority queue and set? */
-    Hashtable<Integer, Long> recv_block_list; // Peer ID, timestamp
-    Hashtable<Integer, Long> send_block_list; // Peer ID, timestamp
-    boolean connectible;
-    /**
-     * My preferences.
-     */
-    Deque<Integer> myPreferences;
-    Hashtable<Integer, Deque<Integer>> peerPreferences;
 
     public void work() {
         /**
@@ -138,13 +152,11 @@ public class BuddyCast
          * We wont' be sending messages to this peer for a while.
          */
         blockPeer(peer, send_block_list);
-        if(response == 0){ /* If connected successfully */
-            BuddyCastMessage msg =  createBuddyCastMessage(peer);
-            /**
-             *  TODO: send message
-             */
-            
-            
+        if (response == 0) { /* If connected successfully */
+            BuddyCastMessage msg = createBuddyCastMessage(peer);
+        /**
+         *  TODO: send message
+         */
         }
 
     }
@@ -331,5 +343,58 @@ public class BuddyCast
             }
         }
 
+    }
+
+    public int degree() {
+        return connT.size() + connR.size() + unconnT.size();
+    }
+
+    public Node getNeighbor(int i) {
+        if (i < 0 || i > degree()) {
+            throw new IndexOutOfBoundsException();
+        }
+        int size1 = connT.size();
+        int size2 = connR.size();
+        if (i < size1) {
+            //return connT.get(i);
+        } else if (i < size1 + size2) {
+            //return connT.get(i - size1);
+        } else {
+            //return unconnT.get(i - size1 - size2);
+        }
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    public boolean addNeighbor(Node node) {
+        if (contains(node)) {
+            return false;
+        }
+        /* TODO */
+        return true;
+    }
+
+    public boolean contains(Node node) {
+        if (connT.contains(node) ||
+                connR.containsKey(node) ||
+                unconnT.contains(node)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public void pack() {
+    }
+
+    public void onKill() {
+        connT = null;
+        connR = null;
+        unconnT = null;
+        candidates = null;
+        recv_block_list = null;
+        send_block_list = null;
+        connectible = false;
+        myPreferences = null;
+        peerPreferences = null;
     }
 }
