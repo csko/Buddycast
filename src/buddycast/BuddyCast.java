@@ -33,23 +33,26 @@ public class BuddyCast
     /**
      * Peer containers.
      */
+    private static Hashtable<Long, Node> idToNode = new Hashtable<Long, Node>();
+    /* List of active TCP connections */
+    Hashtable<Long, Long> connections; // Peer ID, timestamp
     /**
      * These three containers make up the Connection List C_C.
      */
     /* Connectible taste buddies */
     List<TasteBuddy> connT;
     /* Connectible random peers */
-    Hashtable<Integer, Long> connR; // Peer ID, last seen
+    Hashtable<Long, Long> connR; // Peer ID, last seen
     /* Unconnectible taste buddies */
     List<Node> unconnT;
     /* Connection Candidates */
-    Hashtable<Integer, Integer> candidates; // Peer ID, similarity
+    Hashtable<Long, Integer> candidates; // Peer ID, similarity
     /* TODO: priority queue and set? */
     /**
      * Block lists.
      */
-    Hashtable<Integer, Long> recv_block_list; // Peer ID, timestamp
-    Hashtable<Integer, Long> send_block_list; // Peer ID, timestamp
+    Hashtable<Long, Long> recv_block_list; // Peer ID, timestamp
+    Hashtable<Long, Long> send_block_list; // Peer ID, timestamp
     /**
      * Are we connectible?
      */
@@ -61,7 +64,7 @@ public class BuddyCast
     /**
      * Peer preferences.
      */
-    Hashtable<Integer, Deque<Integer>> peerPreferences;
+    Hashtable<Long, Deque<Integer>> peerPreferences;
 
     /**
      *
@@ -70,16 +73,17 @@ public class BuddyCast
     public BuddyCast(String prefix) {
         this.prefix = prefix;
         /* Initialization of the collections */
+        connections = new Hashtable<Long, Long>();
         connT = new ArrayList<TasteBuddy>();
-        connR = new Hashtable<Integer, Long>();
+        connR = new Hashtable<Long, Long>();
         unconnT = new ArrayList<Node>();
-        candidates = new Hashtable<Integer, Integer>();
-        recv_block_list = new Hashtable<Integer, Long>();
-        send_block_list = new Hashtable<Integer, Long>();
+        candidates = new Hashtable<Long, Integer>();
+        recv_block_list = new Hashtable<Long, Long>();
+        send_block_list = new Hashtable<Long, Long>();
         /* Always connectible */
         connectible = true;
         myPreferences = new ArrayDeque<Integer>();
-        peerPreferences = new Hashtable<Integer, Deque<Integer>>();
+        peerPreferences = new Hashtable<Long, Deque<Integer>>();
     }
 
     /**
@@ -141,7 +145,7 @@ public class BuddyCast
         /**
          * Select the Q peer.
          */
-        int peer = tasteSelectTarget(alpha);
+        long peer = tasteSelectTarget(alpha);
         int response = connectPeer(peer);
         /**
          * Remove from connection candidates if it was in that list.
@@ -154,9 +158,9 @@ public class BuddyCast
         blockPeer(peer, send_block_list);
         if (response == 0) { /* If connected successfully */
             BuddyCastMessage msg = createBuddyCastMessage(peer);
-        /**
-         *  TODO: send message
-         */
+            /**
+             *  TODO: send message
+             */
         }
 
     }
@@ -168,11 +172,11 @@ public class BuddyCast
         return new ArrayList(); /* TODO */
     }
 
-    private int connectPeer(int targetName) {
+    private int connectPeer(long targetName) {
         return 0; /* TODO */
     }
 
-    private void removeCandidate(int targetName) {
+    private void removeCandidate(long targetName) {
         candidates.remove(targetName);
     }
 
@@ -180,8 +184,8 @@ public class BuddyCast
      * Select a taste buddy or a random peer from the connection candidate list.
      * @param alpha from [0, 1) is the weight factor between randomness and taste (smaller alpha -> more randomness).
      */
-    private int tasteSelectTarget(double alpha) {
-        int targetName = -1;
+    private long tasteSelectTarget(double alpha) {
+        long targetName = -1;
         if (candidates.isEmpty()) {
             return targetName; // no target
         }
@@ -200,12 +204,12 @@ public class BuddyCast
      * Selects the most similar taste buddy from the connection candidates list.
      * @return The ID of the peer.
      */
-    private int selectTasteBuddy() {
-        int maxId = -1; /* The id of the buddy */
+    private long selectTasteBuddy() {
+        long maxId = -1; /* The id of the buddy */
         int maxSimilarity = -1; /* The similarity of the buddy */
         Iterator ids = candidates.keySet().iterator();
         while (ids.hasNext()) {
-            Integer id = (Integer) ids.next();
+            Long id = (Long) ids.next();
             Integer similarity = (Integer) candidates.get(id);
             if (similarity > maxSimilarity) {
                 maxId = id;
@@ -233,7 +237,7 @@ public class BuddyCast
         return -1;
     }
 
-    private BuddyCastMessage createBuddyCastMessage(int targetName) {
+    private BuddyCastMessage createBuddyCastMessage(long targetName) {
         BuddyCastMessage msg = new BuddyCastMessage();
         msg.myPrefs = getMyPreferences(numMyPrefs);
         msg.randomPeers = getRandomPeers(num_rps, targetName);
@@ -247,24 +251,24 @@ public class BuddyCast
      * @param targetName Not including this peer.
      * @return The random peers.
      */
-    private Hashtable<Integer, Long> getRandomPeers(int num, int targetName) {
-        Hashtable<Integer, Long> randomPeers = new Hashtable<Integer, Long>(); // peer ID, long timestamp
+    private Hashtable<Long, Long> getRandomPeers(int num, long targetName) {
+        Hashtable<Long, Long> randomPeers = new Hashtable<Long, Long>(); // peer ID, long timestamp
         Long now = new Date().getTime();
 
         /* We don't want more peers than available, let's pick some of them */
         if (num <= maxConnRandPeers) {
             ArrayList ids = new ArrayList(connR.keySet());
-            ids.remove((Integer) targetName); /* Not including targetName */
+            ids.remove(targetName); /* Not including targetName */
             Collections.shuffle(ids, CommonState.r);
             Iterator i = ids.iterator();
             for (int n = 0; n < num && i.hasNext(); n++) {
-                Integer id = (Integer) i.next();
+                Long id = (Long) i.next();
                 randomPeers.put(id, now);
             }
         } else { /* We want more peers than available, let's return them all */
             Iterator i = connR.keySet().iterator();
             while (i.hasNext()) { /* Copy all the peers */
-                Integer id = (Integer) i.next();
+                Long id = (Long) i.next();
                 if (id != targetName) { /* Not including targetName */
                     randomPeers.put(id, now); /* Update last seen time */
                 }
@@ -303,11 +307,11 @@ public class BuddyCast
         }
     }
 
-    Deque<Integer> getPrefList(int peerName) {
+    Deque<Integer> getPrefList(long peerName) {
         return peerPreferences.get(peerName);
     }
 
-    private boolean isBlocked(int peerName, Hashtable<Integer, Long> list) {
+    private boolean isBlocked(long peerName, Hashtable<Long, Long> list) {
         /* peerName is not on block_list */
         if (!list.containsKey(peerName)) {
             return false;
@@ -320,7 +324,7 @@ public class BuddyCast
         return true;
     }
 
-    private void blockPeer(int peerName, Hashtable<Integer, Long> list) {
+    private void blockPeer(long peerName, Hashtable<Long, Long> list) {
         list.put(peerName, new Date().getTime() + block_interval);
     }
 
@@ -346,23 +350,20 @@ public class BuddyCast
     }
 
     public int degree() {
-        return connT.size() + connR.size() + unconnT.size();
+        return connections.size();
     }
 
     public Node getNeighbor(int i) {
-        if (i < 0 || i > degree()) {
+        if (i < 0 || i >= degree()) {
             throw new IndexOutOfBoundsException();
         }
-        int size1 = connT.size();
-        int size2 = connR.size();
-        if (i < size1) {
-            //return connT.get(i);
-        } else if (i < size1 + size2) {
-            //return connT.get(i - size1);
-        } else {
-            //return unconnT.get(i - size1 - size2);
-        }
-        throw new UnsupportedOperationException("Not supported yet.");
+        Collection<Long> values = connections.values();
+        Long[] valuesArray = (Long[]) values.toArray();
+
+        assert (valuesArray.length == degree());
+
+        return idToNode.get(valuesArray[i]);
+
     }
 
     public boolean addNeighbor(Node node) {
@@ -374,9 +375,7 @@ public class BuddyCast
     }
 
     public boolean contains(Node node) {
-        if (connT.contains(node) ||
-                connR.containsKey(node) ||
-                unconnT.contains(node)) {
+        if (connections.containsKey(node.getID())) {
             return true;
         } else {
             return false;
@@ -387,6 +386,7 @@ public class BuddyCast
     }
 
     public void onKill() {
+        connections = null;
         connT = null;
         connR = null;
         unconnT = null;

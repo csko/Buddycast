@@ -24,7 +24,7 @@ public class BuddyCastMessage {
     /**
      * The list of random peers
      */
-    Hashtable<Integer, Long> randomPeers;
+    Hashtable<Long, Long> randomPeers;
     /**
      * True, if the client is connectible;
      */
