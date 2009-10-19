@@ -24,12 +24,16 @@ public class BuddyCast
      * The exploration-to-exploitation ratio.
      */
     private final double alpha = 0.5;
-    private final long block_interval = 10000; /* TODO */
+    private final long block_interval = 4 * 60 * 60 * 1000; // millisecundums
 
     /**
      * The number of random peers in a message.
      */
     private final int num_rps = 10;
+    /**
+     * Simulation related.
+     */
+    private final long timeout = 5 * 60 * 1000; // millisecundums
     /**
      * Peer containers.
      */
@@ -40,11 +44,16 @@ public class BuddyCast
      * These three containers make up the Connection List C_C.
      */
     /* Connectible taste buddies */
-    List<TasteBuddy> connT;
+    Hashtable<Long, TasteBuddy> connT; // Peer ID, TasteBuddy
     /* Connectible random peers */
     Hashtable<Long, Long> connR; // Peer ID, last seen
+    /**
+     * The maximum number of connectible random peers stored.
+     * TODO: this should be changeable
+     */
+    private int maxConnR = 10;
     /* Unconnectible taste buddies */
-    List<Node> unconnT;
+    List<Long> unconnT; // Peer ID
     /* Connection Candidates */
     Hashtable<Long, Integer> candidates; // Peer ID, similarity
     /* TODO: priority queue and set? */
@@ -74,9 +83,9 @@ public class BuddyCast
         this.prefix = prefix;
         /* Initialization of the collections */
         connections = new Hashtable<Long, Long>();
-        connT = new ArrayList<TasteBuddy>();
+        connT = new Hashtable<Long, TasteBuddy>();
         connR = new Hashtable<Long, Long>();
-        unconnT = new ArrayList<Node>();
+        unconnT = new ArrayList<Long>();
         candidates = new Hashtable<Long, Integer>();
         recv_block_list = new Hashtable<Long, Long>();
         send_block_list = new Hashtable<Long, Long>();
@@ -349,6 +358,29 @@ public class BuddyCast
 
     }
 
+    private void addPeerToConnList(long peerID, boolean connectible) {
+        // TODO: assert( isConnected(peer_name) );
+
+        // See if the peer is already on one of the lists and remove
+        if (connT.containsKey(peerID)) {
+            connT.remove(peerID);
+        } else if (connR.containsKey(peerID)) {
+            connR.remove(peerID);
+        } else if (unconnT.contains(peerID)) {
+            unconnT.remove(peerID);
+        }
+
+        Long now = new Date().getTime();
+        if (connectible) {
+            if (!addPeerToConnT(peerID, now)) {
+                addPeerToConnR(peerID, now);
+            }
+        } else {
+            addPeerToUnConn(peerID, now);
+        }
+
+    }
+
     public int degree() {
         return connections.size();
     }
@@ -371,6 +403,11 @@ public class BuddyCast
             return false;
         }
         /* TODO */
+        Long peerName = node.getID();
+        //int dummy = addPeer(peerName); // TODO
+        Long now = new Date().getTime();
+        //updateLastSeen(peerName, now); // TODO
+        connections.put(peerName, now + timeout);
         return true;
     }
 
@@ -396,5 +433,96 @@ public class BuddyCast
         connectible = false;
         myPreferences = null;
         peerPreferences = null;
+    }
+
+    private boolean addPeerToConnT(long peerID, Long now) {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    private void addPeerToConnR(long peerID, Long now) {
+        if (!unconnT.contains(peerID)) {
+            int outPeer = addNewPeerToConnList(connR, maxConnR, peerID, now);
+            if (outPeer != -1) {
+//                closeConnection(outPeer);
+            }
+
+        }
+        /*
+        if (connected_unconnectable_peers.find(peer_name) == connected_unconnectable_peers.end()) {
+        int out_peer = addNewPeerToConnList(connected_unconnectable_peers, max_conn_up, peer_name, conn_time);
+        if (out_peer != -1 * (NUM_SUPERPEERS + 1)) {
+        closeConnection(out_peer);
+        }
+        }
+         */
+
+    }
+
+    private void addPeerToUnConn(long peerID, Long now) {
+        throw new UnsupportedOperationException("Not yet implemented");
+    }
+
+    /**
+     * A general method to add a candidate peer to a connection list.
+     */
+    private int addNewPeerToConnList(Hashtable<Long, Long> connList, int maxNum, long peerID, Long connTime) {
+        /*        int dummy = -1; // TODO
+        pair<int32_t, string> oldest_peer, to_cmp;
+        String _name;
+        Long _conn_time, r;
+        vector<string> out_peer;
+        stringstream pfirst;
+
+        // cerr << name << "'s addNewPeerToConnList() called with peer_name = " << peer_name << endl;
+        if (connList.size() <= maxNum) {
+        connList[peerID] = connTime;
+        return dummy; // return empty string
+        } else {
+        oldest_peer = pair < int32_t
+        , string>(connTime+1,
+
+        "");
+        string initial("abcdefghijklmnopqrstuvwxyz");
+        for (map<int, int32_t>:  {
+        :
+        }
+        iterator p = connList.begin();
+        p!=connList.end();
+        p++
+
+
+        )
+        {
+        _conn_time = p-  > second;
+        r = randint(0, max_conn_tb + 1);
+        _name.clear();
+        _name.push_back(initial.at(r));
+        _name.push_back('.');
+        pfirst << p->first;
+        _name += pfirst.str();
+        pfirst.str("");  // clear
+        to_cmp = pair < int32_t
+        , string>(_conn_time,
+        _name)
+        ;
+
+
+        oldest_peer = min_peer
+
+        (oldest_peer
+
+        , to_cmp);
+        }
+        if (connTime > oldest_peer.first)
+        {
+        out_peer = split_dot(oldest_peer.second);
+        connList.erase(atoi(out_peer[1].c_str()));
+        connList[peerID] = connTime;
+        return atoi(out_peer[1].c_str());
+        }
+        return peerID;
+        }
+         */
+        return 0;
     }
 }
