@@ -17,13 +17,12 @@ public class BuddyCast
     /**
      * Constants. TODO: make them changeable via parameters.
      */
-    private final int maxConnRandPeers = 10;
     private final int numMyPrefs = 50;
     /**
      * The exploration-to-exploitation ratio.
      */
     private final double alpha = 0.5;
-    private final long block_interval = 4 * 60 * 60 * 1000; // millisecundums
+    private final long blockInterval = 4 * 60 * 60 * 1000; // millisecundums
     /**
      * The number of random peers in a message.
      */
@@ -32,6 +31,9 @@ public class BuddyCast
      * Simulation related.
      */
     private final long timeout = 5 * 60 * 1000; // millisecundums
+    /**
+     * TODO: It would be nice to somehow reduce the number of lists here.
+     */
     /**
      * Peer containers.
      */
@@ -71,6 +73,11 @@ public class BuddyCast
     Hashtable<Long, Long> recv_block_list; // Peer ID, timestamp
     Hashtable<Long, Long> send_block_list; // Peer ID, timestamp
     /**
+     * Peer connection list.
+     * TODO: This could be integrated to an other list.
+     */
+    //Hashtable<Long, Pair<Long, int>> peers;
+    /**
      * Are we connectible?
      */
     boolean connectible;
@@ -83,17 +90,13 @@ public class BuddyCast
      */
     Hashtable<Long, Deque<Integer>> peerPreferences;
 
-    /**
-     *
-     * @param prefix
-     */
     public BuddyCast(String prefix) {
         this.prefix = prefix;
         /* Initialization of the collections */
         connections = new Hashtable<Long, Long>();
-        connT = new Hashtable<Long, Long>();
-        connR = new Hashtable<Long, Long>();
-        unconnT = new Hashtable<Long, Long>();
+        connT = new Hashtable<Long, Long>(maxConnT);
+        connR = new Hashtable<Long, Long>(maxConnR);
+        unconnT = new Hashtable<Long, Long>(maxUnConnT);
         candidates = new Hashtable<Long, Integer>();
         recv_block_list = new Hashtable<Long, Long>();
         send_block_list = new Hashtable<Long, Long>();
@@ -273,7 +276,7 @@ public class BuddyCast
         Long now = new Date().getTime();
 
         /* We don't want more peers than available, let's pick some of them */
-        if (num <= maxConnRandPeers) {
+        if (num <= maxConnR) { // TODO: is this correct?
             ArrayList ids = new ArrayList(connR.keySet());
             ids.remove(targetName); /* Not including targetName */
             Collections.shuffle(ids, CommonState.r);
@@ -334,6 +337,7 @@ public class BuddyCast
             return false;
         }
 
+        /* Remove it if it's expired */
         if (new Date().getTime() >= list.get(peerName)) {
             list.remove(peerName);
             return false;
@@ -342,12 +346,13 @@ public class BuddyCast
     }
 
     private void blockPeer(long peerName, Hashtable<Long, Long> list) {
-        list.put(peerName, new Date().getTime() + block_interval);
+        list.put(peerName, new Date().getTime() + blockInterval);
     }
 
     private void updateBlockLists() {
         Long now = new Date().getTime();
 
+        /* Remove outdated entries */
         Iterator i = send_block_list.entrySet().iterator();
         while (i.hasNext()) {
             Long timestamp = (Long) i.next();
@@ -370,13 +375,10 @@ public class BuddyCast
         // TODO: assert( isConnected(peer_name) );
 
         // See if the peer is already on one of the lists and remove
-        if (connT.containsKey(peerID)) {
-            connT.remove(peerID);
-        } else if (connR.containsKey(peerID)) {
-            connR.remove(peerID);
-        } else if (unconnT.contains(peerID)) {
-            unconnT.remove(peerID);
-        }
+
+        connT.remove(peerID);
+        connR.remove(peerID);
+        unconnT.remove(peerID);
 
         Long now = new Date().getTime();
         if (connectible) {
@@ -417,6 +419,18 @@ public class BuddyCast
         //updateLastSeen(peerName, now); // TODO
         connections.put(peerName, now + timeout);
         return true;
+    }
+
+    private void removeNeighbor(Long peerID) {
+        if (connections.containsKey(peerID)) {
+            //updateLastSeen(peerID, new Date().getTime()); // TODO
+            connections.remove(peerID);
+            //initiate_connections.remove(peerID); // TODO
+
+            connT.remove(peerID);
+            connR.remove(peerID);
+            unconnT.remove(peerID);
+        }
     }
 
     public boolean contains(Node node) {
@@ -461,6 +475,12 @@ public class BuddyCast
         }
     }
 
+    /**
+     * Add a peer to the taste buddy list.
+     * @param peerID The peer ID to add.
+     * @param now The peer's connection time.
+     * @return True, if the peer was added, false otherwise.
+     */
     boolean addPeerToConnT(long peerID, Long now) {
         int sim = 2;
         // sim = peers[peerID].second; // TODO: get the similarity
@@ -544,6 +564,22 @@ public class BuddyCast
             }
             return peerID;
         }
+    }
+
+    int addPeer(long peerID) {
+        /* TODO: check if the peer is myself */
+        //if (peerID == name) {
+//            return -1;
+//        }
+/* TODO: this needs refactoring */
+        /*
+        if (peers.find(peerID) == peers.end()) // peer_name is not on the map "peers"
+        {
+        peers[peerID].first = 0;
+        peers[peerID].second = 0;
+        return 1;
+        }*/
+        return 0;
     }
 
     private void closeConnection(long outPeer) {
