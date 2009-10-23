@@ -2,7 +2,6 @@ package buddycast;
 
 import java.util.*;
 import java.util.ArrayList;
-import java.util.List;
 import peersim.config.FastConfig;
 import peersim.core.*;
 import peersim.edsim.EDProtocol;
@@ -44,6 +43,11 @@ public class BuddyCast
      */
     /* Connectible taste buddies */
     Hashtable<Long, Long> connT; // Peer ID, last seen
+    /**
+     * The maximum number of connectible taste buddies stored.
+     * TODO: this should be changeable
+     */
+    private int maxConnT = 10;
     /* Connectible random peers */
     Hashtable<Long, Long> connR; // Peer ID, last seen
     /**
@@ -53,6 +57,11 @@ public class BuddyCast
     private int maxConnR = 10;
     /* Unconnectible taste buddies */
     Hashtable<Long, Long> unconnT; // Peer ID, last seen
+    /**
+     * The maximum number of unconnectible peers stored.
+     * TODO: this should be changeable
+     */
+    private int maxUnConnT = 10;
     /* Connection Candidates */
     Hashtable<Long, Integer> candidates; // Peer ID, similarity
     /* TODO: priority queue and set? */
@@ -375,7 +384,7 @@ public class BuddyCast
                 addPeerToConnR(peerID, now);
             }
         } else {
-            addPeerToUnConn(peerID, now);
+            addPeerToUnConnT(peerID, now);
         }
 
     }
@@ -434,31 +443,64 @@ public class BuddyCast
         peerPreferences = null;
     }
 
-    private boolean addPeerToConnT(long peerID, Long now) {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
     private void addPeerToConnR(long peerID, Long now) {
-        if (!unconnT.contains(peerID)) {
+        if (!connR.contains(peerID)) {
             long outPeer = addNewPeerToConnList(connR, maxConnR, peerID, now);
             if (outPeer != -1) {
                 closeConnection(outPeer);
             }
-
         }
-        /*
-        if (connected_unconnectable_peers.find(peer_name) == connected_unconnectable_peers.end()) {
-        int out_peer = addNewPeerToConnList(connected_unconnectable_peers, max_conn_up, peer_name, conn_time);
-        if (out_peer != -1 * (NUM_SUPERPEERS + 1)) {
-        closeConnection(out_peer);
-        }
-        }
-         */
-
     }
 
-    private void addPeerToUnConn(long peerID, Long now) {
-        throw new UnsupportedOperationException("Not yet implemented");
+    private void addPeerToUnConnT(long peerID, Long now) {
+        if (!unconnT.contains(peerID)) {
+            long outPeer = addNewPeerToConnList(unconnT, maxUnConnT, peerID, now);
+            if (outPeer != -1) {
+                closeConnection(outPeer);
+            }
+        }
+    }
+
+    boolean addPeerToConnT(long peerID, Long now) {
+        int sim = 2;
+        // sim = peers[peerID].second; // TODO: get the similarity
+
+        if (sim > 0) {
+            /* The list is not full, we don't have to remove */
+            if (connT.size() <= maxConnT) {
+                connT.put(peerID, now);
+                return true;
+            } else {
+                /* Get the peer with minimal similarty */
+                Long minPeerTime = now + 1;
+                long minPeerID = -1;
+                int minSim = Integer.MAX_VALUE;
+
+                for (Iterator i = connT.keySet().iterator(); i.hasNext();) {
+                    Long peer = (Long) i.next();
+                    Long peerTime = connT.get(peer);
+                    int peerSim = 1; // TODO: get the similarity
+
+                    if (peerSim < minSim ||
+                            (peerSim == minSim && peerTime < minPeerTime)) {
+                        minPeerID = peer;
+                        minPeerTime = peerTime;
+                        minSim = peerSim;
+                    }
+                }
+                /* There is a less similar peer to drop */
+                if (sim > minSim) {
+                    /* Remove the least similar peer */
+                    connT.remove(minPeerID);
+                    /* Try to add the peer to the random peer list */
+                    addPeerToConnR(minPeerID, minPeerTime);
+                    /* Add the new peer to the buddy list */
+                    connT.put(peerID, now);
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -480,9 +522,12 @@ public class BuddyCast
             connList.put(peerID, connTime);
             return oldestPeerID; /* none removed */
         } else {
+            /* Get the oldest peer */
             for (Iterator i = connList.keySet().iterator(); i.hasNext();) {
                 Long peer = (Long) i.next();
                 Long peerTime = connList.get(peer);
+                /* NOTE: we might want to select between the oldest peers (if
+                 * there are more of them) based on some probability */
                 if (peerTime < oldestPeerTime) { /* Found a new oldest peer */
                     oldestPeerID = peer;
                     oldestPeerTime = peerTime;
