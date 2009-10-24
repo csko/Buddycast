@@ -152,6 +152,7 @@ public class BuddyCast
     }
 
     public void work() {
+        System.out.println("work()" + CommonState.getNode());
         /**
          * TODO: wait(DT time units) {15 seconds in current implementation}
          */
@@ -165,6 +166,7 @@ public class BuddyCast
          * TODO: If C_C is empty, do bootstrapping
          * select 5 peers from megacache
          */
+        
         /**
          * Select the Q peer.
          */
@@ -219,12 +221,11 @@ public class BuddyCast
         Collections.sort(peers);
         int i = 0;
         for (IDTimePair pair : peers) {
-            if (i < number) {
+            if (i++ < number) {
                 ret.add(pair.first); // Add the peer ID
             } else {
                 break;
             }
-            i++;
         }
         return ret;
     }
@@ -242,6 +243,7 @@ public class BuddyCast
      * @param alpha from [0, 1) is the weight factor between randomness and taste (smaller alpha -> more randomness).
      */
     private long tasteSelectTarget(double alpha) {
+        System.out.println("tasteSelectTarget()");
         long targetName = -1;
         if (candidates.isEmpty()) {
             return targetName; // no target
@@ -390,7 +392,7 @@ public class BuddyCast
         Long now = new Date().getTime();
 
         /* Remove outdated entries */
-        Iterator i = send_block_list.entrySet().iterator();
+        Iterator i = send_block_list.values().iterator();
         while (i.hasNext()) {
             Long timestamp = (Long) i.next();
             if (now >= timestamp) {
@@ -437,11 +439,11 @@ public class BuddyCast
             throw new IndexOutOfBoundsException();
         }
         Collection<Long> values = connections.values();
-        Long[] valuesArray = (Long[]) values.toArray();
+        Object[] valuesArray = values.toArray();
 
         assert (valuesArray.length == degree());
 
-        return idToNode.get(valuesArray[i]);
+        return idToNode.get((Long) valuesArray[i]);
 
     }
 
@@ -659,5 +661,31 @@ public class BuddyCast
                 return -1;
             }
         }
+    }
+
+    public static void main(String args[]) {
+        Hashtable<Long, Long> connections = new Hashtable<Long, Long>();
+        connections.put(new Long(0), new Long(1));
+        connections.put(new Long(1), new Long(2));
+        connections.put(new Long(2), new Long(3));
+        connections.put(new Long(3), new Long(4));
+
+
+        Collection<Long> values = connections.values();
+        Object[] valuesArray = values.toArray();
+        for(int i=0; i<valuesArray.length; i++){
+            System.out.println(valuesArray[i]);
+        }
+
+        System.out.println("---");
+
+        connections.put(new Long(4), new Long(5));
+        connections.put(new Long(3), new Long(24));
+        values = connections.values();
+        valuesArray = values.toArray();
+        for(int i=0; i<valuesArray.length; i++){
+            System.out.println(valuesArray[i]);
+        }
+
     }
 }

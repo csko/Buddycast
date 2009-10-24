@@ -23,26 +23,28 @@ simulation.logtime CYCLE
 
 ################### protocols ===========================
 
-protocol.link peersim.core.IdleProtocol
-
 protocol.bc buddycast.BuddyCast
 protocol.bc.linkable link
 protocol.bc.step CYCLE
 protocol.bc.transport tr
 
-protocol.urt UniformRandomTransport
-protocol.urt.mindelay (CYCLE*MINDELAY)/100
-protocol.urt.maxdelay (CYCLE*MAXDELAY)/100
+#protocol.urt UniformRandomTransport
+#protocol.urt.mindelay (CYCLE*MINDELAY)/100
+#protocol.urt.maxdelay (CYCLE*MAXDELAY)/100
 
-protocol.tr UnreliableTransport
-protocol.tr.transport urt
-protocol.tr.drop DROP
+#protocol.tr UnreliableTransport
+#protocol.tr.transport urt
+#protocol.tr.drop DROP
 
 ################### initialization ======================
 
+init.start MethodInvoker
+init.start.protocol bc
+init.start.method work
+
 init.rndlink WireKOut
 init.rndlink.k 20
-init.rndlink.protocol link
+init.rndlink.protocol bc
 
 #init.vals LinearDistribution
 #init.vals.protocol avg
