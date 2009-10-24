@@ -33,11 +33,14 @@ public class BuddyCast
     private final long timeout = 5 * 60 * 1000; // millisecundums
     /**
      * TODO: It would be nice to somehow reduce the number of lists here.
+     * TODO: change iterators to the ":" syntax
      */
     /**
      * Peer containers.
      */
     private static Hashtable<Long, Node> idToNode = new Hashtable<Long, Node>();
+    private static Hashtable<Long, Integer> idToSimilarity = new Hashtable<Long, Integer>();
+    private static Hashtable<Long, Long> idToConnTime = new Hashtable<Long, Long>();
     /* List of active TCP connections */
     Hashtable<Long, Long> connections; // Peer ID, last seen
     /**
@@ -186,10 +189,44 @@ public class BuddyCast
     }
 
     /**
+     * 
+     * @param superpeers
+     */
+    private void bootstrap(List<Long> superpeers) {
+        Long now = new Date().getTime();
+        for (Long peerID : superpeers) {
+            addPeer(peerID);
+            updateLastSeen(peerID, now);
+        }
+    }
+
+    /**
      * Protocol related functions
      */
-    public ArrayList selectRecentPeers(int number) {
-        return new ArrayList(); /* TODO */
+    /**
+     * Selects the last few number of peers according to the last seen time.
+     * @param list The list to select peers from.
+     * @param number The number of peers to select.
+     * @return The peer list.
+     */
+    public ArrayList<Long> selectRecentPeers(Hashtable<Long, Long> list, int number) {
+        ArrayList<Long> ret = new ArrayList<Long>(); // the resulting peer IDs
+        ArrayList<IDTimePair> peers = new ArrayList<IDTimePair>();
+        for (Long peerID : list.keySet()) {
+            /* Fill the peers array with the peerID/LastSeen pairs */
+            peers.add(new IDTimePair(peerID, list.get(peerID)));
+        }
+        Collections.sort(peers);
+        int i = 0;
+        for (IDTimePair pair : peers) {
+            if (i < number) {
+                ret.add(pair.first); // Add the peer ID
+            } else {
+                break;
+            }
+            i++;
+        }
+        return ret;
     }
 
     private int connectPeer(long targetName) {
@@ -416,7 +453,7 @@ public class BuddyCast
         Long peerName = node.getID();
         //int dummy = addPeer(peerName); // TODO
         Long now = new Date().getTime();
-        //updateLastSeen(peerName, now); // TODO
+        updateLastSeen(peerName, now);
         connections.put(peerName, now + timeout);
         return true;
     }
@@ -571,18 +608,56 @@ public class BuddyCast
         //if (peerID == name) {
 //            return -1;
 //        }
-/* TODO: this needs refactoring */
-        /*
-        if (peers.find(peerID) == peers.end()) // peer_name is not on the map "peers"
-        {
-        peers[peerID].first = 0;
-        peers[peerID].second = 0;
-        return 1;
-        }*/
+
+        /* TODO: this might need some refactoring */
+        if (!idToConnTime.containsKey(peerID) &&
+                !idToSimilarity.containsKey(peerID)) {
+            idToConnTime.put(peerID, new Long(0));
+            idToSimilarity.put(peerID, new Integer(0));
+            return 1;
+        }
         return 0;
     }
 
-    private void closeConnection(long outPeer) {
-        throw new UnsupportedOperationException("Not yet implemented");
+    private void closeConnection(long peerID) {
+        if (connections.containsKey(peerID)) {
+            updateLastSeen(peerID, new Date().getTime());
+            connections.remove(peerID);
+            //initiate_connections.remove(peerID);
+            connT.remove(peerID);
+            connR.remove(peerID);
+            unconnT.remove(peerID);
+        }
+    }
+
+    private void updateLastSeen(long peerID, Long lastSeen) {
+        if (idToConnTime.containsKey(peerID)) {
+            idToConnTime.put(peerID, lastSeen);
+        }
+    }
+
+    /**
+     * A pair representing a peer ID and a last seen time.
+     */
+    private final class IDTimePair implements Comparable {
+
+        private final Long first, second;
+
+        IDTimePair(Long first, Long second) {
+            this.first = first;
+            this.second = second;
+        }
+
+        public int compareTo(Object p) {
+            /* Oldest peers first */
+            IDTimePair pair = (IDTimePair) p;
+            if (this.second < pair.second) {
+                return 1;
+            } else if (this.second == pair.second) {
+                return 0;
+            } else {
+                return -1;
+            }
+        }
     }
 }
