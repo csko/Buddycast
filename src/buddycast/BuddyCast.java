@@ -83,7 +83,7 @@ public class BuddyCast
      */
     private int maxUnConnT = 10;
     /* Connection Candidates */
-    Hashtable<Long, Long> candidates; // Peer ID, similarity
+    Hashtable<Long, Long> candidates; // Peer ID, timestamp
     /**
      * The maximum number of connection candidates stored.
      * TODO: this should be changeable
@@ -93,8 +93,8 @@ public class BuddyCast
     /**
      * Block lists.
      */
-    Hashtable<Long, Long> recv_block_list; // Peer ID, timestamp
-    Hashtable<Long, Long> send_block_list; // Peer ID, timestamp
+    Hashtable<Long, Long> recvBlockList; // Peer ID, timestamp
+    Hashtable<Long, Long> sendBlockList; // Peer ID, timestamp
     /**
      * Are we connectible?
      */
@@ -122,8 +122,8 @@ public class BuddyCast
         connR = new Hashtable<Long, Long>(maxConnR);
         unconnT = new Hashtable<Long, Long>(maxUnConnT);
         candidates = new Hashtable<Long, Long>(maxConnCandidates);
-        recv_block_list = new Hashtable<Long, Long>();
-        send_block_list = new Hashtable<Long, Long>();
+        recvBlockList = new Hashtable<Long, Long>();
+        sendBlockList = new Hashtable<Long, Long>();
         myPreferences = new ArrayDeque<Integer>();
         peerPreferences = new Hashtable<Long, Deque<Integer>>();
         idToNode = new Hashtable<Long, Node>();
@@ -170,6 +170,7 @@ public class BuddyCast
             bc = (BuddyCast) super.clone();
         } catch (CloneNotSupportedException e) {
         } // This never happens.
+        bc.connectible = connectible;
         bc.createLists();
         return bc;
     }
@@ -196,7 +197,7 @@ public class BuddyCast
         }
 
         if (isSuperPeer(CommonState.getNode().getID())) {
-            /* Do nothing as a superpeer */
+            /* Do nothing as a Super Peer */
             return;
         }
         /**
@@ -207,6 +208,7 @@ public class BuddyCast
             /* No valid target found */
             return;
         }
+        /* Physically connect to the peer */
         int response = connectPeer(peer);
         /**
          * Remove from connection candidates if it was in that list.
@@ -214,9 +216,9 @@ public class BuddyCast
         removeCandidate(peer);
 
         /**
-         * We wont' be sending messages to this peer for a while.
+         * We won't be sending messages to this peer for a while.
          */
-        blockPeer(peer, send_block_list);
+        blockPeer(peer, sendBlockList);
         if (response == 0) { /* If connected successfully */
             BuddyCastMessage msg = createBuddyCastMessage(peer);
             /**
@@ -252,7 +254,7 @@ public class BuddyCast
         for (Iterator<Long> it = idToConnTime.keySet().iterator(); it.hasNext();) {
             Long peerID = it.next();
             /* See if the peer is blocked */
-            if (!isBlocked(peerID, send_block_list)) {
+            if (!isBlocked(peerID, sendBlockList)) {
                 superPeerList.put(peerID, idToConnTime.get(peerID));
             }
         }
@@ -263,9 +265,6 @@ public class BuddyCast
         }
     }
 
-    /**
-     * Protocol related functions
-     */
     /**
      * Selects the last few number of peers according to the last seen time.
      * @param list The list to select peers from.
@@ -291,8 +290,23 @@ public class BuddyCast
         return ret;
     }
 
-    private int connectPeer(long targetName) {
-        return 0; /* TODO */
+    private int connectPeer(long peerID) {
+        /* TODO: Don't always successfully connect to the peer */
+        int result = 0;
+        /* TODO: Tell the other node that we are connected.
+         *       (undirected graph)
+         */
+        // TODO: check isBlocked(peerID(), sendBlockList)
+        Node node = getNodeByID(peerID);
+        if(node == null){ /* Node not found */
+            return 1;
+        }
+
+        if (result == 0) {
+            addNeighbor(node);
+        }
+
+        return result;
     }
 
     private void removeCandidate(long targetName) {
@@ -454,7 +468,7 @@ public class BuddyCast
         Long now = new Date().getTime();
 
         /* Remove outdated entries */
-        Iterator i = send_block_list.values().iterator();
+        Iterator i = sendBlockList.values().iterator();
         while (i.hasNext()) {
             Long timestamp = (Long) i.next();
             if (now >= timestamp) {
@@ -462,7 +476,7 @@ public class BuddyCast
             }
         }
 
-        i = recv_block_list.entrySet().iterator();
+        i = recvBlockList.entrySet().iterator();
         while (i.hasNext()) {
             Long timestamp = (Long) i.next();
             if (now >= timestamp) {
@@ -510,12 +524,12 @@ public class BuddyCast
     }
 
     public boolean addNeighbor(Node node) {
+        /* Also known as addConnection() */
         if (contains(node)) {
             return false;
         }
-        /* TODO */
         Long peerName = node.getID();
-        //int dummy = addPeer(peerName); // TODO
+        addPeer(peerName);
         Long now = new Date().getTime();
         updateLastSeen(peerName, now);
         connections.put(peerName, now + timeout);
@@ -551,8 +565,8 @@ public class BuddyCast
         connR = null;
         unconnT = null;
         candidates = null;
-        recv_block_list = null;
-        send_block_list = null;
+        recvBlockList = null;
+        sendBlockList = null;
         connectible = false;
         myPreferences = null;
         peerPreferences = null;
@@ -710,7 +724,7 @@ public class BuddyCast
      */
     private void addConnCandidate(Long peerID, Long lastSeen) {
         /* See if the peer is blocked */
-        if (isBlocked(peerID, send_block_list)) {
+        if (isBlocked(peerID, sendBlockList)) {
             return;
         }
 
@@ -743,6 +757,30 @@ public class BuddyCast
 
     boolean isSuperPeer(Long peerID) {
         return 0 <= peerID && peerID < numSuperPeers;
+    }
+
+    /**
+     * Get a node by its ID.
+     * @param id The ID of the node.
+     * @return The node, if found; null otherwise.
+     */
+    private Node getNodeByID(Long id) {
+        /* First, see if we have the node cached */
+        if (idToNode.contains(id)) {
+            return idToNode.get(id);
+        }
+        /* Find the Node in the network 
+         * NOTE: this is possibly a hack.
+         */
+        for (int i = 0; i < Network.size(); i++) {
+            Node node = Network.get(i);
+            if (node.getID() == id) {
+                /* Add the node to the cache for later use */
+                idToNode.put(id, node);
+                return node;
+            }
+        }
+        return null;
     }
 
     /**
@@ -793,6 +831,5 @@ public class BuddyCast
         for (int i = 0; i < valuesArray.length; i++) {
             System.out.println(valuesArray[i]);
         }
-
     }
 }
