@@ -1,7 +1,6 @@
 package buddycast;
 
 import java.util.*;
-import java.util.ArrayList;
 import peersim.config.FastConfig;
 import peersim.core.*;
 import peersim.edsim.EDProtocol;
@@ -16,7 +15,7 @@ public class BuddyCast
     private String prefix;
     /**
      * The number of Super Peers. TODO: this should be changeable.
-     * NOTE: The first s peers are considered Super peers (0,...,s-1).
+     * NOTE: The first s peers are considered Super Peers (0, ..., s-1).
      */
     private final int numSuperPeers = 5;
     /**
@@ -77,7 +76,12 @@ public class BuddyCast
      */
     private int maxUnConnT = 10;
     /* Connection Candidates */
-    Hashtable<Long, Integer> candidates; // Peer ID, similarity
+    Hashtable<Long, Long> candidates; // Peer ID, similarity
+    /**
+     * The maximum number of connection candidates stored.
+     * TODO: this should be changeable
+     */
+    private int maxConnCandidates = 50;
     /* TODO: priority queue and set? */
     /**
      * Block lists.
@@ -109,7 +113,7 @@ public class BuddyCast
         connT = new Hashtable<Long, Long>(maxConnT);
         connR = new Hashtable<Long, Long>(maxConnR);
         unconnT = new Hashtable<Long, Long>(maxUnConnT);
-        candidates = new Hashtable<Long, Integer>();
+        candidates = new Hashtable<Long, Long>(maxConnCandidates);
         recv_block_list = new Hashtable<Long, Long>();
         send_block_list = new Hashtable<Long, Long>();
         /* Always connectible */
@@ -226,7 +230,7 @@ public class BuddyCast
         for (Iterator<Long> it = idToConnTime.keySet().iterator(); it.hasNext();) {
             Long peerID = it.next();
             /* See if the peer is blocked */
-            if (!isBlocked(peerID, send_block_list)){
+            if (!isBlocked(peerID, send_block_list)) {
                 peerList.put(peerID, idToConnTime.get(peerID));
             }
         }
@@ -302,12 +306,11 @@ public class BuddyCast
     private long selectTasteBuddy() {
         long maxId = -1; /* The id of the buddy */
         int maxSimilarity = -1; /* The similarity of the buddy */
-        Iterator ids = candidates.keySet().iterator();
-        while (ids.hasNext()) {
-            Long id = (Long) ids.next();
-            Integer similarity = (Integer) candidates.get(id);
+        for (Iterator ids = candidates.keySet().iterator(); ids.hasNext();) {
+            Long peer = (Long) ids.next();
+            Integer similarity = idToSimilarity.get(peer);
             if (similarity > maxSimilarity) {
-                maxId = id;
+                maxId = peer;
                 maxSimilarity = similarity;
             }
         }
@@ -318,12 +321,11 @@ public class BuddyCast
      * Selects a random peer from the connection candidates list.
      * @return The ID of the peer.
      */
-    private int selectRandomPeer() {
-        int i = 0;
+    private long selectRandomPeer() {
+        long i = 0;
         int r = CommonState.r.nextInt(candidates.size());
-        Iterator ids = candidates.keySet().iterator();
-        while (ids.hasNext()) {
-            Integer id = (Integer) ids.next();
+        for (Iterator ids = candidates.keySet().iterator(); ids.hasNext();) {
+            Long id = (Long) ids.next();
             if (i == r) {
                 return id;
             }
@@ -421,7 +423,7 @@ public class BuddyCast
     }
 
     private void blockPeer(long peerName, Hashtable<Long, Long> list) {
-        if(peerName == -1){
+        if (peerName == -1) {
             return;
         }
         list.put(peerName, new Date().getTime() + blockInterval);
@@ -676,8 +678,54 @@ public class BuddyCast
         }
     }
 
-    private void addConnCandidate(Long peerID, Long get) {
-        // TODO
+    /**
+     * Adds peer to the connection candidates list.
+     *
+     * The method checks if the connection candidate list is too long, and
+     * if so, deletes the oldest peer from the this list.
+     *
+     * @param peerID The peer to be added.
+     * @param lastSeen The peer's last seen value
+     */
+    private void addConnCandidate(Long peerID, Long lastSeen) {
+        /* See if the peer is blocked */
+        if (isBlocked(peerID, send_block_list)) {
+            return;
+        }
+
+        /* Already in the list, just update the time */
+        if (candidates.contains(peerID)) {
+            candidates.put(peerID, lastSeen);
+            return;
+        }
+
+        /* There is space on the list, so just add it */
+        if (candidates.size() < maxConnCandidates) {
+            candidates.put(peerID, lastSeen);
+            return;
+        } else {/* The list is full, remove the oldest entry */
+            /* Find the oldest entry */
+            long oldestPeer = -1;
+            long oldestPeerTime = Long.MAX_VALUE;
+            for (Iterator it = candidates.keySet().iterator(); it.hasNext();) {
+                Long peer = (Long) it.next();
+                Long peerTime = candidates.get(peer);
+                if (peerTime < oldestPeerTime) {
+                    oldestPeer = peer;
+                    oldestPeerTime = peerTime;
+                }
+            }
+            /* Remove the oldest entry */
+            removeConnCandidate(oldestPeer);
+        }
+    }
+
+    private void removeConnCandidate(long oldestPeer) {
+        candidates.remove(oldestPeer);
+    }
+
+    boolean isSuperPeer(Long peerID) {
+        return 0 <= peerID && peerID < numSuperPeers;
     }
 
     /**
