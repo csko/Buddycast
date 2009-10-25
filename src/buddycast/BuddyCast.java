@@ -17,11 +17,17 @@ public class BuddyCast
      * The number of Super Peers. TODO: this should be changeable.
      * NOTE: The first s peers are considered Super Peers (0, ..., s-1).
      */
-    private final int numSuperPeers = 5;
+    private final static int numSuperPeers = 5;
     /**
      * The array of the superpeers.
      */
     private static ArrayList<Long> superpeers = new ArrayList<Long>();
+
+    static {/* Create superpeers */
+        for (int i = 0; i < numSuperPeers; i++) {
+            superpeers.add(new Long(i));
+        }
+    }
     /**
      * Constants. TODO: make them changeable via parameters.
      */
@@ -46,9 +52,10 @@ public class BuddyCast
     /**
      * Peer containers.
      */
-    private Hashtable<Long, Node> idToNode = new Hashtable<Long, Node>();
-    private Hashtable<Long, Integer> idToSimilarity = new Hashtable<Long, Integer>();
-    private Hashtable<Long, Long> idToConnTime = new Hashtable<Long, Long>();
+    //Hashtable<Long, Pair<Long, int>> peers;
+    private Hashtable<Long, Node> idToNode;
+    private Hashtable<Long, Integer> idToSimilarity;
+    private Hashtable<Long, Long> idToConnTime;
     /* List of active TCP connections */
     Hashtable<Long, Long> connections; // Peer ID, last seen
     /**
@@ -89,11 +96,6 @@ public class BuddyCast
     Hashtable<Long, Long> recv_block_list; // Peer ID, timestamp
     Hashtable<Long, Long> send_block_list; // Peer ID, timestamp
     /**
-     * Peer connection list.
-     * TODO: This could be integrated to an other list.
-     */
-    //Hashtable<Long, Pair<Long, int>> peers;
-    /**
      * Are we connectible?
      */
     boolean connectible;
@@ -109,6 +111,12 @@ public class BuddyCast
     public BuddyCast(String prefix) {
         this.prefix = prefix;
         /* Initialization of the collections */
+        createLists();
+        /* Always connectible */
+        connectible = true;
+    }
+
+    private void createLists() {
         connections = new Hashtable<Long, Long>();
         connT = new Hashtable<Long, Long>(maxConnT);
         connR = new Hashtable<Long, Long>(maxConnR);
@@ -116,10 +124,11 @@ public class BuddyCast
         candidates = new Hashtable<Long, Long>(maxConnCandidates);
         recv_block_list = new Hashtable<Long, Long>();
         send_block_list = new Hashtable<Long, Long>();
-        /* Always connectible */
-        connectible = true;
         myPreferences = new ArrayDeque<Integer>();
         peerPreferences = new Hashtable<Long, Deque<Integer>>();
+        idToNode = new Hashtable<Long, Node>();
+        idToSimilarity = new Hashtable<Long, Integer>();
+        idToConnTime = new Hashtable<Long, Long>();
     }
 
     /**
@@ -161,6 +170,7 @@ public class BuddyCast
             bc = (BuddyCast) super.clone();
         } catch (CloneNotSupportedException e) {
         } // This never happens.
+        bc.createLists();
         return bc;
     }
 
@@ -168,7 +178,7 @@ public class BuddyCast
      * The main function. Should be called every 15 seconds.
      */
     public void work() {
-        System.out.println("work()" + CommonState.getNode());
+        System.out.println(this + "work()" + CommonState.getNode());
         /**
          * TODO: wait(DT time units) {15 seconds in current implementation}
          */
@@ -184,10 +194,19 @@ public class BuddyCast
         if (candidates.isEmpty()) {
             bootstrap();
         }
+
+        if (isSuperPeer(CommonState.getNode().getID())) {
+            /* Do nothing as a superpeer */
+            return;
+        }
         /**
          * Select the Q peer.
          */
         long peer = tasteSelectTarget(alpha);
+        if (peer == -1) {
+            /* No valid target found */
+            return;
+        }
         int response = connectPeer(peer);
         /**
          * Remove from connection candidates if it was in that list.
@@ -208,7 +227,7 @@ public class BuddyCast
     }
 
     /**
-     * Do the bootstrapping. Add a number of superpeers as peers.
+     * Do the bootstrapping. Add a maximum of number of superpeers as peers.
      */
     private void bootstrap() {
 //	if (bootstrapped)
@@ -217,27 +236,29 @@ public class BuddyCast
         Long now = new Date().getTime();
         int i = 0;
         for (Long peerID : superpeers) {
-            if (i++ < numSuperPeers) {
-                addPeer(peerID);
-                updateLastSeen(peerID, now);
-            } else {
-                break;
+            /* Don't add myself (as a superpeer) */
+            if (peerID != CommonState.getNode().getID()) {
+                if (i++ < numSuperPeers) {
+                    addPeer(peerID);
+                    updateLastSeen(peerID, now);
+                } else {
+                    break;
+                }
             }
         }
         /* NOTE: at this point, idToConnTime should only contain superpeers */
         /* Get the superpeers who are not on the block list */
-        Hashtable<Long, Long> peerList = new Hashtable<Long, Long>();
+        Hashtable<Long, Long> superPeerList = new Hashtable<Long, Long>();
         for (Iterator<Long> it = idToConnTime.keySet().iterator(); it.hasNext();) {
             Long peerID = it.next();
             /* See if the peer is blocked */
             if (!isBlocked(peerID, send_block_list)) {
-                peerList.put(peerID, idToConnTime.get(peerID));
+                superPeerList.put(peerID, idToConnTime.get(peerID));
             }
         }
         /* Add the most recent peers as candidates */
-        ArrayList<Long> recentPeers = selectRecentPeers(peerList, numSuperPeers);
-        for (Iterator<Long> it = recentPeers.iterator(); it.hasNext();) {
-            Long peerID = it.next();
+        ArrayList<Long> recentPeers = selectRecentPeers(superPeerList, numSuperPeers);
+        for (Long peerID : recentPeers) {
             addConnCandidate(peerID, idToConnTime.get(peerID));
         }
     }
@@ -716,12 +737,8 @@ public class BuddyCast
                 }
             }
             /* Remove the oldest entry */
-            removeConnCandidate(oldestPeer);
+            removeCandidate(oldestPeer);
         }
-    }
-
-    private void removeConnCandidate(long oldestPeer) {
-        candidates.remove(oldestPeer);
     }
 
     boolean isSuperPeer(Long peerID) {
