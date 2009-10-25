@@ -40,7 +40,15 @@ public class BuddyCast
     /**
      * The number of random peers in a message.
      */
-    private final int num_rps = 10;
+    private final int numRandomPeers = 10;
+    /**
+     * The number of Taste Buddies in a message.
+     */
+    private final int numTasteBuddies = 10;
+    /**
+     * The number of Taste Buddy preferances in a message.
+     */
+    private final int numTBPrefs = 20;
     /**
      * Simulation related.
      */
@@ -124,7 +132,7 @@ public class BuddyCast
         candidates = new Hashtable<Long, Long>(maxConnCandidates);
         recvBlockList = new Hashtable<Long, Long>();
         sendBlockList = new Hashtable<Long, Long>();
-        myPreferences = new ArrayDeque<Integer>();
+        myPreferences = new ArrayDeque<Integer>(numMyPrefs);
         peerPreferences = new Hashtable<Long, Deque<Integer>>();
         idToNode = new Hashtable<Long, Node>();
         idToSimilarity = new Hashtable<Long, Integer>();
@@ -298,7 +306,7 @@ public class BuddyCast
          */
         // TODO: check isBlocked(peerID(), sendBlockList)
         Node node = getNodeByID(peerID);
-        if(node == null){ /* Node not found */
+        if (node == null) { /* Node not found */
             return 1;
         }
 
@@ -372,7 +380,8 @@ public class BuddyCast
     private BuddyCastMessage createBuddyCastMessage(long targetName) {
         BuddyCastMessage msg = new BuddyCastMessage();
         msg.myPrefs = getMyPreferences(numMyPrefs);
-        msg.randomPeers = getRandomPeers(num_rps, targetName);
+        msg.tasteBuddies = getTasteBuddies(numTasteBuddies, numTBPrefs, targetName);
+        msg.randomPeers = getRandomPeers(numRandomPeers, targetName);
         msg.connectible = connectible;
         return msg;
     }
@@ -430,6 +439,7 @@ public class BuddyCast
         if (num == 0) {
             return myPreferences;
         } else {
+            // TODO: validate this
             ArrayDeque<Integer> result = new ArrayDeque<Integer>();
             Iterator it = myPreferences.descendingIterator();
             for (int i = 0; i < num && it.hasNext(); i++) {
@@ -772,8 +782,13 @@ public class BuddyCast
         /* Find the Node in the network 
          * NOTE: this is possibly a hack.
          */
+        /* Try the natural index first */
+        Node node = Network.get((int) ((long) id));
+        if (node.getID() == id) {
+            return node;
+        }
         for (int i = 0; i < Network.size(); i++) {
-            Node node = Network.get(i);
+            node = Network.get(i);
             if (node.getID() == id) {
                 /* Add the node to the cache for later use */
                 idToNode.put(id, node);
@@ -781,6 +796,63 @@ public class BuddyCast
             }
         }
         return null;
+    }
+
+    private Hashtable<Long, TasteBuddy> getTasteBuddies(
+            int numTBs, int numTBPs, Long targetName) {
+        Hashtable<Long, TasteBuddy> tbs = new Hashtable<Long, TasteBuddy>();
+        Long now = new Date().getTime();
+
+        if (numTBs < numTasteBuddies) {
+            Vector<Long> ctb = new Vector<Long>(); // Connected taste buddies
+            for (Long peer : connT.keySet()) {
+                ctb.add(peer);
+            }
+            Deque<Long> tb_list = (Deque<Long>) randomSelectList(ctb, numTBs);
+            for (Long peer : tb_list) {
+                /* Not including the target */
+                if (!peer.equals(targetName)) {
+                    /* Set up the taste buddy */
+                    TasteBuddy tb = new TasteBuddy();
+                    tb.setPrefs(
+                            (Deque<Integer>) randomSelectList(
+                            peerPreferences.get(peer),
+                            numTBPs));
+                    tb.setLastSeen(now);
+                    tb.setPeerID(peer);
+
+                    tbs.put(peer, tb);
+                }
+            }
+        } else {
+            for (Long peer : connT.keySet()) {
+                /* Not including the target */
+                if (!peer.equals(targetName)) {
+                    /* Set up the taste buddy */
+                    TasteBuddy tb = new TasteBuddy();
+                    tb.setPrefs(
+                            (Deque<Integer>) randomSelectList(
+                            peerPreferences.get(peer),
+                            numTBPs));
+                    tb.setLastSeen(now);
+                    tb.setPeerID(peer);
+
+                    tbs.put(peer, tb);
+                }
+            }
+        }
+        return tbs;
+    }
+
+    private Collection randomSelectList(Collection ctb, int numTBs) {
+        /* NOTE: this could be optimized */
+        ArrayList tmp = new ArrayList(ctb);
+        Deque result = new ArrayDeque();
+        Collections.shuffle(tmp);
+        for (int i = 0; i < numTBs; i++) {
+            result.add(tmp.remove(0));
+        }
+        return result;
     }
 
     /**

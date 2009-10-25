@@ -2,7 +2,6 @@ package buddycast;
 
 import java.util.Deque;
 import java.util.Hashtable;
-import java.util.List;
 
 /**
  *
@@ -20,11 +19,11 @@ public class BuddyCastMessage {
     /**
      * The list of taste buddies
      */
-    List<TasteBuddy> tasteBuddies;
+    Hashtable<Long, TasteBuddy> tasteBuddies; // peerID, TB(prefs, lastSeen)
     /**
      * The list of random peers
      */
-    Hashtable<Long, Long> randomPeers;
+    Hashtable<Long, Long> randomPeers; // peerID, lastSeen
     /**
      * True, if the client is connectible;
      */
