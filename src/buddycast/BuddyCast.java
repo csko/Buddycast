@@ -15,6 +15,15 @@ public class BuddyCast
 
     private String prefix;
     /**
+     * The number of Super Peers. TODO: this should be changeable.
+     * NOTE: The first s peers are considered Super peers (0,...,s-1).
+     */
+    private final int numSuperPeers = 5;
+    /**
+     * The array of the superpeers.
+     */
+    private static ArrayList<Long> superpeers = new ArrayList<Long>();
+    /**
      * Constants. TODO: make them changeable via parameters.
      */
     private final int numMyPrefs = 50;
@@ -38,9 +47,9 @@ public class BuddyCast
     /**
      * Peer containers.
      */
-    private static Hashtable<Long, Node> idToNode = new Hashtable<Long, Node>();
-    private static Hashtable<Long, Integer> idToSimilarity = new Hashtable<Long, Integer>();
-    private static Hashtable<Long, Long> idToConnTime = new Hashtable<Long, Long>();
+    private Hashtable<Long, Node> idToNode = new Hashtable<Long, Node>();
+    private Hashtable<Long, Integer> idToSimilarity = new Hashtable<Long, Integer>();
+    private Hashtable<Long, Long> idToConnTime = new Hashtable<Long, Long>();
     /* List of active TCP connections */
     Hashtable<Long, Long> connections; // Peer ID, last seen
     /**
@@ -151,6 +160,9 @@ public class BuddyCast
         return bc;
     }
 
+    /**
+     * The main function. Should be called every 15 seconds.
+     */
     public void work() {
         System.out.println("work()" + CommonState.getNode());
         /**
@@ -163,10 +175,11 @@ public class BuddyCast
         updateBlockLists();
 
         /**
-         * TODO: If C_C is empty, do bootstrapping
-         * select 5 peers from megacache
+         * Do bootstrapping if needed.
          */
-        
+        if (candidates.isEmpty()) {
+            bootstrap();
+        }
         /**
          * Select the Q peer.
          */
@@ -191,14 +204,37 @@ public class BuddyCast
     }
 
     /**
-     * 
-     * @param superpeers
+     * Do the bootstrapping. Add a number of superpeers as peers.
      */
-    private void bootstrap(List<Long> superpeers) {
+    private void bootstrap() {
+//	if (bootstrapped)
+//		return;
+
         Long now = new Date().getTime();
+        int i = 0;
         for (Long peerID : superpeers) {
-            addPeer(peerID);
-            updateLastSeen(peerID, now);
+            if (i++ < numSuperPeers) {
+                addPeer(peerID);
+                updateLastSeen(peerID, now);
+            } else {
+                break;
+            }
+        }
+        /* NOTE: at this point, idToConnTime should only contain superpeers */
+        /* Get the superpeers who are not on the block list */
+        Hashtable<Long, Long> peerList = new Hashtable<Long, Long>();
+        for (Iterator<Long> it = idToConnTime.keySet().iterator(); it.hasNext();) {
+            Long peerID = it.next();
+            /* See if the peer is blocked */
+            if (!isBlocked(peerID, send_block_list)){
+                peerList.put(peerID, idToConnTime.get(peerID));
+            }
+        }
+        /* Add the most recent peers as candidates */
+        ArrayList<Long> recentPeers = selectRecentPeers(peerList, numSuperPeers);
+        for (Iterator<Long> it = recentPeers.iterator(); it.hasNext();) {
+            Long peerID = it.next();
+            addConnCandidate(peerID, idToConnTime.get(peerID));
         }
     }
 
@@ -385,6 +421,9 @@ public class BuddyCast
     }
 
     private void blockPeer(long peerName, Hashtable<Long, Long> list) {
+        if(peerName == -1){
+            return;
+        }
         list.put(peerName, new Date().getTime() + blockInterval);
     }
 
@@ -462,7 +501,7 @@ public class BuddyCast
 
     private void removeNeighbor(Long peerID) {
         if (connections.containsKey(peerID)) {
-            //updateLastSeen(peerID, new Date().getTime()); // TODO
+            updateLastSeen(peerID, new Date().getTime()); // TODO
             connections.remove(peerID);
             //initiate_connections.remove(peerID); // TODO
 
@@ -521,8 +560,7 @@ public class BuddyCast
      * @return True, if the peer was added, false otherwise.
      */
     boolean addPeerToConnT(long peerID, Long now) {
-        int sim = 2;
-        // sim = peers[peerID].second; // TODO: get the similarity
+        int sim = idToSimilarity.get(peerID);
 
         if (sim > 0) {
             /* The list is not full, we don't have to remove */
@@ -538,7 +576,7 @@ public class BuddyCast
                 for (Iterator i = connT.keySet().iterator(); i.hasNext();) {
                     Long peer = (Long) i.next();
                     Long peerTime = connT.get(peer);
-                    int peerSim = 1; // TODO: get the similarity
+                    int peerSim = idToSimilarity.get(peer);
 
                     if (peerSim < minSim ||
                             (peerSim == minSim && peerTime < minPeerTime)) {
@@ -638,6 +676,10 @@ public class BuddyCast
         }
     }
 
+    private void addConnCandidate(Long peerID, Long get) {
+        // TODO
+    }
+
     /**
      * A pair representing a peer ID and a last seen time.
      */
@@ -673,7 +715,7 @@ public class BuddyCast
 
         Collection<Long> values = connections.values();
         Object[] valuesArray = values.toArray();
-        for(int i=0; i<valuesArray.length; i++){
+        for (int i = 0; i < valuesArray.length; i++) {
             System.out.println(valuesArray[i]);
         }
 
@@ -683,7 +725,7 @@ public class BuddyCast
         connections.put(new Long(3), new Long(24));
         values = connections.values();
         valuesArray = values.toArray();
-        for(int i=0; i<valuesArray.length; i++){
+        for (int i = 0; i < valuesArray.length; i++) {
             System.out.println(valuesArray[i]);
         }
 
