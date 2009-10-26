@@ -35,5 +35,4 @@ class TasteBuddy {
     public void setPrefs(Deque<Integer> prefs) {
         this.prefs = prefs;
     }
-    
 }

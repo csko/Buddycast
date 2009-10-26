@@ -2,7 +2,7 @@
 SIZE 100
 
 # parameters of periodic execution
-CYCLES 100
+CYCLES 10
 CYCLE SIZE*10000
 
 # parameters of message transfer
@@ -28,7 +28,9 @@ protocol.bc.linkable link
 protocol.bc.step CYCLE
 protocol.bc.transport tr
 
-#protocol.urt UniformRandomTransport
+protocol.urt UniformRandomTransport
+protocol.urt.mindelay 0
+protocol.urt.maxdelay 0
 #protocol.urt.mindelay (CYCLE*MINDELAY)/100
 #protocol.urt.maxdelay (CYCLE*MAXDELAY)/100
 
@@ -38,13 +40,12 @@ protocol.bc.transport tr
 
 ################### initialization ======================
 
-init.start MethodInvoker
+init.start BuddyCastInitializer
 init.start.protocol bc
-init.start.method work
 
-init.rndlink WireKOut
-init.rndlink.k 20
-init.rndlink.protocol bc
+#init.rndlink WireKOut
+#init.rndlink.k 20
+#init.rndlink.protocol bc
 
 #init.vals LinearDistribution
 #init.vals.protocol avg

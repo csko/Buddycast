@@ -7,11 +7,10 @@ import java.util.Hashtable;
  *
  * @author csko
  */
-public class BuddyCastMessage {
+class BuddyCastMessage {
 
     public BuddyCastMessage() {
     }
-
     /**
      * The most recent 50 preferences of the active peer
      */

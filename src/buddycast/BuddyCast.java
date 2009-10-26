@@ -4,6 +4,7 @@ import java.util.*;
 import peersim.config.FastConfig;
 import peersim.core.*;
 import peersim.edsim.EDProtocol;
+import peersim.edsim.EDSimulator;
 import peersim.transport.Transport;
 
 /**
@@ -17,7 +18,11 @@ public class BuddyCast
      * The number of Super Peers. TODO: this should be changeable.
      * NOTE: The first s peers are considered Super Peers (0, ..., s-1).
      */
-    private final static int numSuperPeers = 5;
+    final static int numSuperPeers = 5;
+    /**
+     * Time to wait before doing the buddycast protocol.
+     */
+    static final long timeToWait = 15 * 1000;
     /**
      * The array of the superpeers.
      */
@@ -146,25 +151,33 @@ public class BuddyCast
      * @param event
      */
     public void processEvent(Node node, int pid, Object event) {
-        System.err.println("EVENT: " + node + " - " + pid + " " + event);
+        //System.err.println("[" + "] EVENT: " + node + " - " + pid + " " + event);
+        if (event instanceof CycleMessage) {
+            /* Cycle message, schedule an other message in timeToWait time*/
+            EDSimulator.add(timeToWait, CycleMessage.getInstance(), node, pid);
+            /* Do the BuddyCast protocol */
+            work();
 
+        }
+
+        return;/*
         Linkable linkable = (Linkable) node.getProtocol(FastConfig.getLinkable(pid));
 
         if (linkable.degree() > 0) {
-            Node peern = linkable.getNeighbor(CommonState.r.nextInt(linkable.degree()));
+        Node peern = linkable.getNeighbor(CommonState.r.nextInt(linkable.degree()));
 
-            if (!peern.isUp()) {
-                return;
-            }
-
-            BuddyCast peer = (BuddyCast) peern.getProtocol(pid);
-
-            ((Transport) node.getProtocol(FastConfig.getTransport(pid))).send(
-                    node,
-                    peern,
-                    new BuddyCast(prefix),
-                    pid);
+        if (!peern.isUp()) {
+        return;
         }
+
+        BuddyCast peer = (BuddyCast) peern.getProtocol(pid);
+
+        ((Transport) node.getProtocol(FastConfig.getTransport(pid))).send(
+        node,
+        peern,
+        new BuddyCast(prefix),
+        pid);
+        }*/
     }
 
     /**
@@ -184,13 +197,16 @@ public class BuddyCast
     }
 
     /**
+     * Initialize the BuddyCast protocol. Sends every node a starting event.
+     */
+    public static void init() {
+    }
+
+    /**
      * The main function. Should be called every 15 seconds.
      */
     public void work() {
-        System.out.println(this + "work()" + CommonState.getNode());
-        /**
-         * TODO: wait(DT time units) {15 seconds in current implementation}
-         */
+        //System.out.println(this + "work()" + CommonState.getNode());
         /**
          * Remove any peer from the receive and send block lists
          * if its time was expired.
@@ -229,8 +245,14 @@ public class BuddyCast
         blockPeer(peer, sendBlockList);
         if (response == 0) { /* If connected successfully */
             BuddyCastMessage msg = createBuddyCastMessage(peer);
-            /**
-             *  TODO: send message
+            Node node = getNodeByID(peer);
+            int pid = 0; // TODO
+/*
+            ((Transport) node.getProtocol(FastConfig.getTransport(pid))).send(
+            CommonState.getNode(),
+            node,
+            new BuddyCast(prefix),
+            pid);
              */
         }
 
@@ -326,7 +348,6 @@ public class BuddyCast
      * @param alpha from [0, 1) is the weight factor between randomness and taste (smaller alpha -> more randomness).
      */
     private long tasteSelectTarget(double alpha) {
-        System.out.println("tasteSelectTarget()");
         long targetName = -1;
         if (candidates.isEmpty()) {
             return targetName; // no target
@@ -853,6 +874,21 @@ public class BuddyCast
             result.add(tmp.remove(0));
         }
         return result;
+    }
+
+    final static class CycleMessage {
+
+        private static CycleMessage instance = null;
+
+        private CycleMessage() {
+        }
+
+        public static CycleMessage getInstance() {
+            if (instance == null) {
+                instance = new CycleMessage();
+            }
+            return instance;
+        }
     }
 
     /**
