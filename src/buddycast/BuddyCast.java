@@ -60,7 +60,6 @@ public class BuddyCast
     private final long timeout = 5 * 60 * 1000; // millisecundums
     /**
      * TODO: It would be nice to somehow reduce the number of lists here.
-     * TODO: change iterators to the ":" syntax
      */
     /**
      * Peer containers.
@@ -155,29 +154,12 @@ public class BuddyCast
         if (event instanceof CycleMessage) {
             /* Cycle message, schedule an other message in timeToWait time*/
             EDSimulator.add(timeToWait, CycleMessage.getInstance(), node, pid);
+
             /* Do the BuddyCast protocol */
-            work();
-
+            work(pid);
+        } else if (event instanceof BuddyCastMessage) {
+            System.out.println("BuddyCastMessage!");
         }
-
-        return;/*
-        Linkable linkable = (Linkable) node.getProtocol(FastConfig.getLinkable(pid));
-
-        if (linkable.degree() > 0) {
-        Node peern = linkable.getNeighbor(CommonState.r.nextInt(linkable.degree()));
-
-        if (!peern.isUp()) {
-        return;
-        }
-
-        BuddyCast peer = (BuddyCast) peern.getProtocol(pid);
-
-        ((Transport) node.getProtocol(FastConfig.getTransport(pid))).send(
-        node,
-        peern,
-        new BuddyCast(prefix),
-        pid);
-        }*/
     }
 
     /**
@@ -203,9 +185,10 @@ public class BuddyCast
     }
 
     /**
-     * The main function. Should be called every 15 seconds.
+     * The main function. It should be called about every 15 simulation seconds.
+     * @param pid The protocol ID to use.
      */
-    public void work() {
+    public void work(int pid) {
         //System.out.println(this + "work()" + CommonState.getNode());
         /**
          * Remove any peer from the receive and send block lists
@@ -246,14 +229,11 @@ public class BuddyCast
         if (response == 0) { /* If connected successfully */
             BuddyCastMessage msg = createBuddyCastMessage(peer);
             Node node = getNodeByID(peer);
-            int pid = 0; // TODO
-/*
             ((Transport) node.getProtocol(FastConfig.getTransport(pid))).send(
-            CommonState.getNode(),
-            node,
-            new BuddyCast(prefix),
-            pid);
-             */
+                    CommonState.getNode(),
+                    node,
+                    msg,
+                    pid);
         }
 
     }
@@ -281,8 +261,7 @@ public class BuddyCast
         /* NOTE: at this point, idToConnTime should only contain superpeers */
         /* Get the superpeers who are not on the block list */
         Hashtable<Long, Long> superPeerList = new Hashtable<Long, Long>();
-        for (Iterator<Long> it = idToConnTime.keySet().iterator(); it.hasNext();) {
-            Long peerID = it.next();
+        for (Long peerID : idToConnTime.keySet()) {
             /* See if the peer is blocked */
             if (!isBlocked(peerID, sendBlockList)) {
                 superPeerList.put(peerID, idToConnTime.get(peerID));
@@ -322,11 +301,10 @@ public class BuddyCast
 
     private int connectPeer(long peerID) {
         /* TODO: Don't always successfully connect to the peer */
-        int result = 0;
-        /* TODO: Tell the other node that we are connected.
-         *       (undirected graph)
-         */
-        // TODO: check isBlocked(peerID(), sendBlockList)
+        int result = 0; /* The connection was successful */
+
+        assert (!isBlocked(peerID, sendBlockList));
+
         Node node = getNodeByID(peerID);
         if (node == null) { /* Node not found */
             return 1;
@@ -334,6 +312,7 @@ public class BuddyCast
 
         if (result == 0) {
             addNeighbor(node);
+            ((BuddyCast) node.getProtocol(CommonState.getPid())).addNeighbor(CommonState.getNode());
         }
 
         return result;
@@ -370,8 +349,7 @@ public class BuddyCast
     private long selectTasteBuddy() {
         long maxId = -1; /* The id of the buddy */
         int maxSimilarity = -1; /* The similarity of the buddy */
-        for (Iterator ids = candidates.keySet().iterator(); ids.hasNext();) {
-            Long peer = (Long) ids.next();
+        for (Long peer : candidates.keySet()) {
             Integer similarity = idToSimilarity.get(peer);
             if (similarity > maxSimilarity) {
                 maxId = peer;
@@ -388,10 +366,9 @@ public class BuddyCast
     private long selectRandomPeer() {
         long i = 0;
         int r = CommonState.r.nextInt(candidates.size());
-        for (Iterator ids = candidates.keySet().iterator(); ids.hasNext();) {
-            Long id = (Long) ids.next();
+        for (Long peer : candidates.keySet()) {
             if (i == r) {
-                return id;
+                return peer;
             }
             i++;
         }
@@ -428,11 +405,9 @@ public class BuddyCast
                 randomPeers.put(id, now);
             }
         } else { /* We want more peers than available, let's return them all */
-            Iterator i = connR.keySet().iterator();
-            while (i.hasNext()) { /* Copy all the peers */
-                Long id = (Long) i.next();
-                if (id != targetName) { /* Not including targetName */
-                    randomPeers.put(id, now); /* Update last seen time */
+            for (Long peer : connR.keySet()) { /* Copy all the peers */
+                if (peer != targetName) { /* Not including targetName */
+                    randomPeers.put(peer, now); /* Update last seen time */
                 }
             }
         }
@@ -441,10 +416,8 @@ public class BuddyCast
 
     private int getSimilarity(int peerName) {
         int sim = 0;
-        Iterator it = myPreferences.iterator();
         Deque<Integer> peerPrefList = getPrefList(peerName);
-        while (it.hasNext()) {
-            Integer pref = (Integer) it.next();
+        for (Integer pref : myPreferences) {
             if (peerPrefList.contains(pref)) {
                 sim++;
             }
@@ -497,18 +470,15 @@ public class BuddyCast
 
     private void updateBlockLists() {
         Long now = new Date().getTime();
-
         /* Remove outdated entries */
-        Iterator i = sendBlockList.values().iterator();
-        while (i.hasNext()) {
+        Iterator i;
+        for (i = sendBlockList.values().iterator(); i.hasNext();) {
             Long timestamp = (Long) i.next();
             if (now >= timestamp) {
                 i.remove();
             }
         }
-
-        i = recvBlockList.entrySet().iterator();
-        while (i.hasNext()) {
+        for (i = recvBlockList.values().iterator(); i.hasNext();) {
             Long timestamp = (Long) i.next();
             if (now >= timestamp) {
                 i.remove();
@@ -569,7 +539,7 @@ public class BuddyCast
 
     private void removeNeighbor(Long peerID) {
         if (connections.containsKey(peerID)) {
-            updateLastSeen(peerID, new Date().getTime()); // TODO
+            updateLastSeen(peerID, new Date().getTime());
             connections.remove(peerID);
             //initiate_connections.remove(peerID); // TODO
 
@@ -641,8 +611,7 @@ public class BuddyCast
                 long minPeerID = -1;
                 int minSim = Integer.MAX_VALUE;
 
-                for (Iterator i = connT.keySet().iterator(); i.hasNext();) {
-                    Long peer = (Long) i.next();
+                for (Long peer : connT.keySet()) {
                     Long peerTime = connT.get(peer);
                     int peerSim = idToSimilarity.get(peer);
 
@@ -688,8 +657,7 @@ public class BuddyCast
             return oldestPeerID; /* none removed */
         } else {
             /* Get the oldest peer */
-            for (Iterator i = connList.keySet().iterator(); i.hasNext();) {
-                Long peer = (Long) i.next();
+            for (Long peer : connList.keySet()) {
                 Long peerTime = connList.get(peer);
                 /* NOTE: we might want to select between the oldest peers (if
                  * there are more of them) based on some probability */
@@ -712,10 +680,10 @@ public class BuddyCast
     }
 
     int addPeer(long peerID) {
-        /* TODO: check if the peer is myself */
-        //if (peerID == name) {
-//            return -1;
-//        }
+        /* Check if the peer is myself */
+        if (peerID == CommonState.getNode().getID()) {
+            return -1;
+        }
 
         /* TODO: this might need some refactoring */
         if (!idToConnTime.containsKey(peerID) &&
@@ -773,8 +741,7 @@ public class BuddyCast
             /* Find the oldest entry */
             long oldestPeer = -1;
             long oldestPeerTime = Long.MAX_VALUE;
-            for (Iterator it = candidates.keySet().iterator(); it.hasNext();) {
-                Long peer = (Long) it.next();
+            for (Long peer : candidates.keySet()) {
                 Long peerTime = candidates.get(peer);
                 if (peerTime < oldestPeerTime) {
                     oldestPeer = peer;
@@ -800,8 +767,9 @@ public class BuddyCast
         if (idToNode.contains(id)) {
             return idToNode.get(id);
         }
-        /* Find the Node in the network 
+        /* Find the Node in the network
          * NOTE: this is possibly a hack.
+         * The desired way would be to store Node references along the way.
          */
         /* Try the natural index first */
         Node node = Network.get((int) ((long) id));
@@ -913,31 +881,6 @@ public class BuddyCast
             } else {
                 return -1;
             }
-        }
-    }
-
-    public static void main(String args[]) {
-        Hashtable<Long, Long> connections = new Hashtable<Long, Long>();
-        connections.put(new Long(0), new Long(1));
-        connections.put(new Long(1), new Long(2));
-        connections.put(new Long(2), new Long(3));
-        connections.put(new Long(3), new Long(4));
-
-
-        Collection<Long> values = connections.values();
-        Object[] valuesArray = values.toArray();
-        for (int i = 0; i < valuesArray.length; i++) {
-            System.out.println(valuesArray[i]);
-        }
-
-        System.out.println("---");
-
-        connections.put(new Long(4), new Long(5));
-        connections.put(new Long(3), new Long(24));
-        values = connections.values();
-        valuesArray = values.toArray();
-        for (int i = 0; i < valuesArray.length; i++) {
-            System.out.println(valuesArray[i]);
         }
     }
 }

@@ -24,34 +24,15 @@ simulation.logtime CYCLE
 ################### protocols ===========================
 
 protocol.bc buddycast.BuddyCast
-protocol.bc.linkable link
 protocol.bc.step CYCLE
 protocol.bc.transport tr
 
-protocol.urt UniformRandomTransport
-protocol.urt.mindelay 0
-protocol.urt.maxdelay 0
-#protocol.urt.mindelay (CYCLE*MINDELAY)/100
-#protocol.urt.maxdelay (CYCLE*MAXDELAY)/100
+protocol.tr UniformRandomTransport
+protocol.tr.mindelay 0
+protocol.tr.maxdelay 0
 
-#protocol.tr UnreliableTransport
-#protocol.tr.transport urt
-#protocol.tr.drop DROP
 
 ################### initialization ======================
 
-init.start BuddyCastInitializer
+init.start buddycast.BuddyCastInitializer
 init.start.protocol bc
-
-#init.rndlink WireKOut
-#init.rndlink.k 20
-#init.rndlink.protocol bc
-
-#init.vals LinearDistribution
-#init.vals.protocol avg
-#init.vals.max SIZE
-#init.vals.min 1
-
-#init.sch CDScheduler
-#init.sch.protocol avg
-#init.sch.randstart
