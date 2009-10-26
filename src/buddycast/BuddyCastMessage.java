@@ -12,6 +12,10 @@ class BuddyCastMessage {
     public BuddyCastMessage() {
     }
     /**
+     * The peer ID of the sender.
+     */
+    Long sender;
+    /**
      * The most recent 50 preferences of the active peer
      */
     Deque<Integer> myPrefs;

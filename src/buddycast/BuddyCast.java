@@ -159,6 +159,37 @@ public class BuddyCast
             work(pid);
         } else if (event instanceof BuddyCastMessage) {
             System.out.println("BuddyCastMessage!");
+            /* Handle incoming BuddyCast message */
+            BuddyCastMessage msg = (BuddyCastMessage) event;
+
+            /* See if the peer is blocked */
+            if (isBlocked(msg.sender, recvBlockList)) {
+                return;
+            }
+
+            int changed = 0;
+            // changed += addPreferences(msg.sender, msg.myPrefs); // TODO
+
+            /* Use the Taste Buddy list provided in the message */
+            for (TasteBuddy tb : msg.tasteBuddies.values()) {
+                if (addPeer(tb.getPeerID()) == 1) { /* Peer successfully added */
+                    updateLastSeen(tb.getPeerID(), tb.getLastSeen());
+                }
+                //changed += addPreferences(tb.getPeerID(), tb.getPrefs()); // TODO
+                addConnCandidate(tb.getPeerID(), tb.getLastSeen());
+            }
+
+            /* Use the Random Peer list provided in the message */
+            for(Long peer : msg.randomPeers.keySet()){
+                if (addPeer(peer) == 1) { /* Peer successfully added */
+                    updateLastSeen(peer, msg.randomPeers.get(peer));
+                }
+                addConnCandidate(peer, msg.randomPeers.get(peer));
+            }
+
+            addPeerToConnList(msg.sender, msg.connectible);
+
+            blockPeer(msg.sender, recvBlockList);
         }
     }
 
@@ -679,6 +710,13 @@ public class BuddyCast
         }
     }
 
+    /**
+     * Try to add a peer to the peer list, initializing its connection time
+     * and similarity to 0.
+     * @param peerID
+     * @return -1, if the peer is the same peer, hence not added; 0 if the peer
+     * is already in one of the lists; 1 if successfully added
+     */
     int addPeer(long peerID) {
         /* Check if the peer is myself */
         if (peerID == CommonState.getNode().getID()) {
