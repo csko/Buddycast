@@ -28,7 +28,11 @@ class BuddyCastMessage {
      */
     Hashtable<Long, Long> randomPeers; // peerID, lastSeen
     /**
-     * True, if the client is connectible;
+     * True if and only if the client is connectible.
      */
     boolean connectible;
+    /**
+     * True if and only if this is a reply to a previous message.
+     */
+    boolean reply;
 }

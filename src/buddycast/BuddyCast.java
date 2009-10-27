@@ -180,22 +180,47 @@ public class BuddyCast
             }
 
             /* Use the Random Peer list provided in the message */
-            for(Long peer : msg.randomPeers.keySet()){
+            for (Long peer : msg.randomPeers.keySet()) {
                 if (addPeer(peer) == 1) { /* Peer successfully added */
                     updateLastSeen(peer, msg.randomPeers.get(peer));
                 }
                 addConnCandidate(peer, msg.randomPeers.get(peer));
             }
 
+            /* Put the peer on our lists */
             addPeerToConnList(msg.sender, msg.connectible);
 
+            /* If the message wasn't a reply to a previous message */
+            if (msg.reply == false) {
+                /* If the sender is not blocked as a recipient */
+                if (!isBlocked(msg.sender, sendBlockList)) {
+                    /* Create the reply message */
+                    BuddyCastMessage replyMsg = createBuddyCastMessage(msg.sender);
+                    /* Set the sender field */
+                    replyMsg.sender = CommonState.getNode().getID();
+                    /* It's a reply */
+                    replyMsg.reply = true;
+                    /* Send the message */
+                    Node senderNode = getNodeByID(msg.sender);
+                    ((Transport) node.getProtocol(FastConfig.getTransport(pid))).send(
+                            CommonState.getNode(),
+                            senderNode,
+                            replyMsg,
+                            pid);
+                    /* No longer a candidate */
+                    removeCandidate(msg.sender);
+                    /* Block the peer so we won't send too many messages to them */
+                    blockPeer(msg.sender, sendBlockList);
+                }
+            }
+            /* Block the peer so we won't receive too many messages from them */
             blockPeer(msg.sender, recvBlockList);
         }
     }
 
     /**
-     *
-     * @return
+     * Cloning method. Copies all the lists.
+     * @return The clone object.
      */
     @Override
     public Object clone() {
@@ -259,6 +284,11 @@ public class BuddyCast
         blockPeer(peer, sendBlockList);
         if (response == 0) { /* If connected successfully */
             BuddyCastMessage msg = createBuddyCastMessage(peer);
+            /* Set the sender field */
+            msg.sender = CommonState.getNode().getID();
+            /* Not a reply */
+            msg.reply = false;
+            /* Send it */
             Node node = getNodeByID(peer);
             ((Transport) node.getProtocol(FastConfig.getTransport(pid))).send(
                     CommonState.getNode(),
@@ -343,7 +373,13 @@ public class BuddyCast
 
         if (result == 0) {
             addNeighbor(node);
-            ((BuddyCast) node.getProtocol(CommonState.getPid())).addNeighbor(CommonState.getNode());
+            /* Switch to the neighbor node and add us as a neighbor
+             * NOTE: This is possibly a hack.
+             */
+            Node myNode = CommonState.getNode();
+            CommonState.setNode(node);
+            ((BuddyCast) node.getProtocol(CommonState.getPid())).addNeighbor(myNode);
+            CommonState.setNode(myNode);
         }
 
         return result;
@@ -629,7 +665,7 @@ public class BuddyCast
      * @return True, if the peer was added, false otherwise.
      */
     boolean addPeerToConnT(long peerID, Long now) {
-        int sim = idToSimilarity.get(peerID);
+        int sim = idToSimilarity.get(new Long(peerID));
 
         if (sim > 0) {
             /* The list is not full, we don't have to remove */
@@ -683,7 +719,7 @@ public class BuddyCast
         long oldestPeerTime = connTime + 1;
 
         /* The list is not full, we don't have to remove */
-        if (connList.size() <= maxNum) {
+        if (connList.size() < maxNum) {
             connList.put(peerID, connTime);
             return oldestPeerID; /* none removed */
         } else {

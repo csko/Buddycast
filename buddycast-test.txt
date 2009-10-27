@@ -2,7 +2,7 @@
 SIZE 100
 
 # parameters of periodic execution
-CYCLES 10
+CYCLES 100
 CYCLE SIZE*10000
 
 # parameters of message transfer
