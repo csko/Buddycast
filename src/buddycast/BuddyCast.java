@@ -71,7 +71,7 @@ public class BuddyCast
      * Peer containers.
      */
     //Hashtable<Long, Pair<Long, int>> peers;
-    private Hashtable<Long, Node> idToNode;
+    private static Hashtable<Long, Node> idToNode;
     private Hashtable<Long, Integer> idToSimilarity;
     private Hashtable<Long, Long> idToConnTime;
     /* List of active TCP connections */
@@ -168,7 +168,7 @@ public class BuddyCast
             /* Do the BuddyCast protocol */
             work(pid);
         } else if (event instanceof BuddyCastMessage) {
-            System.out.println("BuddyCastMessage!");
+            //System.out.println("BuddyCastMessage!");
             /* Handle incoming BuddyCast message */
             BuddyCastMessage msg = (BuddyCastMessage) event;
 
@@ -603,7 +603,7 @@ public class BuddyCast
         if (i < 0 || i >= degree()) {
             throw new IndexOutOfBoundsException();
         }
-        Collection<Long> values = connections.values();
+        Collection<Long> values = connections.keySet();
         Object[] valuesArray = values.toArray();
 
         assert (valuesArray.length == degree());
@@ -616,6 +616,10 @@ public class BuddyCast
         /* Also known as addConnection() */
         if (contains(node)) {
             return false;
+        }
+        /* If we don't have the node cached, cache it */
+        if(!idToNode.containsKey(node.getID())){
+            idToNode.put(node.getID(), node);
         }
         Long peerName = node.getID();
         addPeer(peerName);
@@ -992,13 +996,28 @@ public class BuddyCast
         return result;
     }
 
+    /**
+     * Singleton static Cycle Message class to keep the nodes running.
+     */
     final static class CycleMessage {
 
+        /**
+         * The instance.
+         */
         private static CycleMessage instance = null;
 
+        /**
+         * The constructor is private so it cannot be instantiated from the
+         * outside.
+         */
         private CycleMessage() {
         }
 
+        /**
+         * Returns the (one and only) CycleMessage instance. If there is none,
+         * it creates one.
+         * @return The CycleMessage instance.
+         */
         public static CycleMessage getInstance() {
             if (instance == null) {
                 instance = new CycleMessage();
@@ -1008,12 +1027,17 @@ public class BuddyCast
     }
 
     /**
-     * A pair representing a peer ID and a last seen time.
+     * A not-so-general pair class representing a peer ID and a last seen time.
      */
     private final class IDTimePair implements Comparable {
 
         private final Long first, second;
 
+        /**
+         * Constructor.
+         * @param first The peer ID.
+         * @param second The last seen time.
+         */
         IDTimePair(Long first, Long second) {
             this.first = first;
             this.second = second;
