@@ -14,15 +14,13 @@ public class BuddyCast
         implements EDProtocol, Linkable {
 
     private String prefix;
+// ======================== network related ========================
+// =================================================================
     /**
      * The number of Super Peers. TODO: this should be changeable.
      * NOTE: The first s peers are considered Super Peers (0, ..., s-1).
      */
     final static int numSuperPeers = 5;
-    /**
-     * Time to wait before doing the buddycast protocol.
-     */
-    static final long timeToWait = 15 * 1000;
     /**
      * The array of the superpeers.
      */
@@ -36,41 +34,11 @@ public class BuddyCast
             superpeers.add(new Long(i));
         }
     }
-    /**
-     * Constants. TODO: make them changeable via parameters.
-     */
-    /**
-     * The number of my own preferences sent in a message.
-     */
-    private final int numMyPrefs = 50;
-    /**
-     * The exploration-to-exploitation ratio.
-     */
-    private final double alpha = 0.5;
-    private final long blockInterval = 4 * 60 * 60 * 1000; // millisecundums
-    /**
-     * The number of random peers in a message.
-     */
-    private final int numRandomPeers = 10;
-    /**
-     * The number of Taste Buddies in a message.
-     */
-    private final int numTasteBuddies = 10;
-    /**
-     * The number of Taste Buddy preferences in a message.
-     */
-    private final int numTBPrefs = 20;
-    /**
-     * Simulation related.
-     */
-    private final long timeout = 5 * 60 * 1000; // millisecundums
+// ======================== peer containers ========================
+// =================================================================
     /**
      * TODO: It would be nice to somehow reduce the number of lists here.
      */
-    /**
-     * Peer containers.
-     */
-    //Hashtable<Long, Pair<Long, int>> peers;
     private static Hashtable<Long, Node> idToNode;
     private Hashtable<Long, Integer> idToSimilarity;
     private Hashtable<Long, Long> idToConnTime;
@@ -81,33 +49,12 @@ public class BuddyCast
      */
     /* Connectible taste buddies */
     Hashtable<Long, Long> connT; // Peer ID, last seen
-    /**
-     * The maximum number of connectible taste buddies stored.
-     * TODO: this should be changeable
-     */
-    private int maxConnT = 10;
     /* Connectible random peers */
     Hashtable<Long, Long> connR; // Peer ID, last seen
-    /**
-     * The maximum number of connectible random peers stored.
-     * TODO: this should be changeable
-     */
-    private int maxConnR = 10;
     /* Unconnectible taste buddies */
     Hashtable<Long, Long> unconnT; // Peer ID, last seen
-    /**
-     * The maximum number of unconnectible peers stored.
-     * TODO: this should be changeable
-     */
-    private int maxUnConnT = 10;
     /* Connection Candidates */
     Hashtable<Long, Long> candidates; // Peer ID, timestamp
-    /**
-     * The maximum number of connection candidates stored.
-     * TODO: this should be changeable
-     */
-    private int maxConnCandidates = 50;
-    /* TODO: priority queue and set? */
     /**
      * Block lists.
      */
@@ -125,13 +72,64 @@ public class BuddyCast
      * Peer preferences.
      */
     Hashtable<Long, Deque<Integer>> peerPreferences;
+// ======================== peer container limits ==================
+// =================================================================
+    /* TODO: these should be changeable */
     /**
-     * The number of preferences stored per peer.
+     * The maximum number of connectible taste buddies stored.
      */
-    private final int numPreferencesStored = 500;
-
+    private int maxConnT = 10;
+    /**
+     * The maximum number of unconnectible peers stored.
+     */
+    private int maxUnConnT = 10;
+    /**
+     * The maximum number of connectible random peers stored.
+     */
+    private int maxConnR = 10;
+    /**
+     * The maximum number of connection candidates stored.
+     */
+    private int maxCandidates = 50;
+    /**
+     * The number of maximum preferences stored per peer.
+     */
+    private final int maxPeerPreferences = 500;
+// ======================== message and behavior ===================
+// =================================================================
+    /**
+     * Time to wait before doing the buddycast protocol.
+     */
+    static final long timeToWait = 15 * 1000;
+    /**
+     * The exploitation-to-exploration ratio.
+     * (the higher it is, exploration is done with a higher probability)
+     */
+    private final double alpha = 0.5;
+    private final long blockInterval = 4 * 60 * 60 * 1000; // millisecundums
+    /**
+     * The number of my own preferences sent in a message.
+     */
+    private final int numMsgMyPrefs = 50;
+    /**
+     * The number of random peers in a message.
+     */
+    private final int numMsgRandomPeers = 10;
+    /**
+     * The number of Taste Buddies in a message.
+     */
+    private final int numMsgTasteBuddies = 10;
+    /**
+     * The number of Taste Buddy preferences in a message.
+     */
+    private final int numMsgTBPrefs = 20;
+    /**
+     * The connection timeout.
+     */
+    private final long timeout = 5 * 60 * 1000; // millisecundums
 // ======================== initialization =========================
 // =================================================================
+
     /**
      * Construtor. Creates the lists.
      * @param prefix The prefix of the protocol.
@@ -152,10 +150,10 @@ public class BuddyCast
         connT = new Hashtable<Long, Long>(maxConnT);
         connR = new Hashtable<Long, Long>(maxConnR);
         unconnT = new Hashtable<Long, Long>(maxUnConnT);
-        candidates = new Hashtable<Long, Long>(maxConnCandidates);
+        candidates = new Hashtable<Long, Long>(maxCandidates);
         recvBlockList = new Hashtable<Long, Long>();
         sendBlockList = new Hashtable<Long, Long>();
-        myPreferences = new ArrayDeque<Integer>(numMyPrefs);
+        myPreferences = new ArrayDeque<Integer>(numMsgMyPrefs);
         peerPreferences = new Hashtable<Long, Deque<Integer>>();
         idToNode = new Hashtable<Long, Node>();
         idToSimilarity = new Hashtable<Long, Integer>();
@@ -430,9 +428,9 @@ public class BuddyCast
 
     private BuddyCastMessage createBuddyCastMessage(long targetName) {
         BuddyCastMessage msg = new BuddyCastMessage();
-        msg.myPrefs = getMyPreferences(numMyPrefs);
-        msg.tasteBuddies = getTasteBuddies(numTasteBuddies, numTBPrefs, targetName);
-        msg.randomPeers = getRandomPeers(numRandomPeers, targetName);
+        msg.myPrefs = getMyPreferences(numMsgMyPrefs);
+        msg.tasteBuddies = getTasteBuddies(numMsgTasteBuddies, numMsgTBPrefs, targetName);
+        msg.randomPeers = getRandomPeers(numMsgRandomPeers, targetName);
         msg.connectible = connectible;
         return msg;
     }
@@ -473,9 +471,9 @@ public class BuddyCast
         }
         double r = CommonState.r.nextDouble();  // [0, 1) uniformly
 
-        if (r < alpha) {  /* Select a taste buddy */
+        if (r < alpha) {  /* Select a taste buddy (exploitation) */
             targetName = selectTasteBuddy();
-        } else { /* Select a random peer */
+        } else { /* Select a random peer (exploration) */
             targetName = selectRandomPeer();
         }
         return targetName;
@@ -506,7 +504,7 @@ public class BuddyCast
         }
 
         /* There is space on the list, so just add it */
-        if (candidates.size() < maxConnCandidates) {
+        if (candidates.size() < maxCandidates) {
             candidates.put(peerID, lastSeen);
             return;
         } else {/* The list is full, remove the oldest entry */
@@ -826,7 +824,7 @@ public class BuddyCast
         Hashtable<Long, TasteBuddy> tbs = new Hashtable<Long, TasteBuddy>();
         Long now = new Date().getTime();
 
-        if (numTBs < numTasteBuddies) {
+        if (numTBs < numMsgTasteBuddies) {
             Vector<Long> ctb = new Vector<Long>(); // Connected taste buddies
             for (Long peer : connT.keySet()) {
                 ctb.add(peer);
@@ -968,7 +966,7 @@ public class BuddyCast
         for (Integer item : prefs) {
             if (!peerPreferences.containsKey(peerID)) {
                 peerPreferences.put(peerID,
-                        new ArrayDeque<Integer>(numPreferencesStored));
+                        new ArrayDeque<Integer>(maxPeerPreferences));
                 /* NOTE: maximum storage size is specified here */
             }
             Deque<Integer> peerPrefList = peerPreferences.get(peerID);
@@ -1018,6 +1016,7 @@ public class BuddyCast
     }
 // ======================== helper classes =========================
 // =================================================================
+
     /**
      * Singleton static Cycle Message class to keep the nodes running.
      */
