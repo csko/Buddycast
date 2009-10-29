@@ -28,13 +28,19 @@ public class BuddyCast
      */
     private static ArrayList<Long> superpeers = new ArrayList<Long>();
 
-    static {/* Create superpeers */
+    /**
+     * Create superpeers.
+     */
+    static {
         for (int i = 0; i < numSuperPeers; i++) {
             superpeers.add(new Long(i));
         }
     }
     /**
      * Constants. TODO: make them changeable via parameters.
+     */
+    /**
+     * The number of my own preferences sent in a message.
      */
     private final int numMyPrefs = 50;
     /**
@@ -51,7 +57,7 @@ public class BuddyCast
      */
     private final int numTasteBuddies = 10;
     /**
-     * The number of Taste Buddy preferances in a message.
+     * The number of Taste Buddy preferences in a message.
      */
     private final int numTBPrefs = 20;
     /**
@@ -119,6 +125,10 @@ public class BuddyCast
      * Peer preferences.
      */
     Hashtable<Long, Deque<Integer>> peerPreferences;
+    /**
+     * The number of preferences stored per peer.
+     */
+    private final int numPreferencesStored = 500;
 
     public BuddyCast(String prefix) {
         this.prefix = prefix;
@@ -168,14 +178,14 @@ public class BuddyCast
             }
 
             int changed = 0;
-            // changed += addPreferences(msg.sender, msg.myPrefs); // TODO
+            changed += addPreferences(msg.sender, msg.myPrefs);
 
             /* Use the Taste Buddy list provided in the message */
             for (TasteBuddy tb : msg.tasteBuddies.values()) {
                 if (addPeer(tb.getPeerID()) == 1) { /* Peer successfully added */
                     updateLastSeen(tb.getPeerID(), tb.getLastSeen());
                 }
-                //changed += addPreferences(tb.getPeerID(), tb.getPrefs()); // TODO
+                changed += addPreferences(tb.getPeerID(), tb.getPrefs());
                 addConnCandidate(tb.getPeerID(), tb.getLastSeen());
             }
 
@@ -230,7 +240,7 @@ public class BuddyCast
         } catch (CloneNotSupportedException e) {
         } // This never happens.
         bc.connectible = connectible;
-        bc.createLists();
+        bc.createLists(); // Not really cloning, but creating a new empty object
         return bc;
     }
 
@@ -481,9 +491,14 @@ public class BuddyCast
         return randomPeers;
     }
 
-    private int getSimilarity(int peerName) {
+    /**
+     * Calculates the similarity between a peer and us.
+     * @param peerID The peer's ID.
+     * @return The similarity value.
+     */
+    private int getSimilarity(long peerID) {
         int sim = 0;
-        Deque<Integer> peerPrefList = getPrefList(peerName);
+        Deque<Integer> peerPrefList = getPrefList(peerID);
         for (Integer pref : myPreferences) {
             if (peerPrefList.contains(pref)) {
                 sim++;
@@ -514,15 +529,21 @@ public class BuddyCast
         return peerPreferences.get(peerName);
     }
 
-    private boolean isBlocked(long peerName, Hashtable<Long, Long> list) {
-        /* peerName is not on block_list */
-        if (!list.containsKey(peerName)) {
+    /**
+     * Determines if a peer is on the block list.
+     * @param peerID The peer's ID.
+     * @param list The list to examine.
+     * @return true, if the peer is on the list; false otherwise
+     */
+    private boolean isBlocked(long peerID, Hashtable<Long, Long> list) {
+        /* peerID is not on block_list */
+        if (!list.containsKey(peerID)) {
             return false;
         }
 
         /* Remove it if it's expired */
-        if (new Date().getTime() >= list.get(peerName)) {
-            list.remove(peerName);
+        if (new Date().getTime() >= list.get(peerID)) {
+            list.remove(peerID);
             return false;
         }
         return true;
@@ -608,7 +629,6 @@ public class BuddyCast
         if (connections.containsKey(peerID)) {
             updateLastSeen(peerID, new Date().getTime());
             connections.remove(peerID);
-            //initiate_connections.remove(peerID); // TODO
 
             connT.remove(peerID);
             connR.remove(peerID);
@@ -773,7 +793,6 @@ public class BuddyCast
         if (connections.containsKey(peerID)) {
             updateLastSeen(peerID, new Date().getTime());
             connections.remove(peerID);
-            //initiate_connections.remove(peerID);
             connT.remove(peerID);
             connR.remove(peerID);
             unconnT.remove(peerID);
@@ -784,6 +803,61 @@ public class BuddyCast
         if (idToConnTime.containsKey(peerID)) {
             idToConnTime.put(peerID, lastSeen);
         }
+    }
+
+    /**
+     * Update the similarity values regarding an item.
+     * @param item The item.
+     */
+    void updateAllSimilarity(int item) {
+        /* See who has this item */
+        for (Long peerID : peerPreferences.keySet()) {
+            Deque<Integer> peerPrefList = peerPreferences.get(peerID);
+            /* See if the item is on the list */
+            if (peerPrefList.contains(item)) {
+                /* Update the peer's preferences */
+                updateSimilarity(peerID);
+            }
+        }
+    }
+
+    /**
+     * Update a peer's similarity.
+     * @param peerID The peer's ID.
+     */
+    private void updateSimilarity(long peerID) {
+        if (idToSimilarity.containsKey(peerID)) {
+            idToSimilarity.put(peerID, getSimilarity(peerID));
+        }
+    }
+
+    private int addPreferences(long peerID, Deque<Integer> prefs) {
+        int changed = 0;
+
+        for (Integer item : prefs) {
+            if (!peerPreferences.containsKey(peerID)) {
+                peerPreferences.put(peerID,
+                        new ArrayDeque<Integer>(numPreferencesStored));
+                /* NOTE: maximum storage size is specified here */
+            }
+            Deque<Integer> peerPrefList = peerPreferences.get(peerID);
+
+            /* It is not on the peer's preference list, let's put it on */
+            if (!peerPrefList.contains(item)) {
+                if (!peerPrefList.offer(item)) {
+                    /* The queue is full, we need to remove the first element */
+                    peerPrefList.removeFirst();
+                    boolean result = peerPrefList.offer(item);
+                    assert (result == true);
+                }
+                changed = 1;
+            }
+        }
+
+        if (changed == 1) {
+            updateSimilarity(peerID);
+        }
+        return 0;
     }
 
     /**
