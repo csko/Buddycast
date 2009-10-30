@@ -100,13 +100,13 @@ public class BuddyCast
     /**
      * Time to wait before doing the buddycast protocol.
      */
-    static final long timeToWait = 15 * 1000;
+    static final long timeToWait = 15;
     /**
      * The exploitation-to-exploration ratio.
      * (the higher it is, exploration is done with a higher probability)
      */
     private final double alpha = 0.5;
-    private final long blockInterval = 4 * 60 * 60 * 1000; // millisecundums
+    private final long blockInterval = 4 * 60 * 60;
     /**
      * The number of my own preferences sent in a message.
      */
@@ -126,7 +126,7 @@ public class BuddyCast
     /**
      * The connection timeout.
      */
-    private final long timeout = 5 * 60 * 1000; // millisecundums
+    private final long timeout = 5 * 60;
 // ======================== initialization =========================
 // =================================================================
 
@@ -190,7 +190,7 @@ public class BuddyCast
         }
         Long peerName = node.getID();
         addPeer(peerName);
-        Long now = new Date().getTime();
+        Long now = CommonState.getTime();
         updateLastSeen(peerName, now);
         connections.put(peerName, now + timeout);
         return true;
@@ -204,7 +204,7 @@ public class BuddyCast
     private void removeNeighbor(Long peerID) {
 
         if (connections.containsKey(peerID)) {
-            updateLastSeen(peerID, new Date().getTime());
+            updateLastSeen(peerID, CommonState.getTime());
             connections.remove(peerID);
 
             connT.remove(peerID);
@@ -254,7 +254,7 @@ public class BuddyCast
             /* Do the BuddyCast protocol */
             work(pid);
         } else if (event instanceof BuddyCastMessage) {
-            //System.out.println("BuddyCastMessage!");
+            System.out.println("BuddyCastMessage!");
             /* Handle incoming BuddyCast message */
             BuddyCastMessage msg = (BuddyCastMessage) event;
 
@@ -397,7 +397,7 @@ public class BuddyCast
 //	if (bootstrapped)
 //		return;
 
-        Long now = new Date().getTime();
+        Long now = CommonState.getTime();
         int i = 0;
         for (Long peerID : superpeers) {
             /* Don't add myself (as a superpeer) */
@@ -436,7 +436,7 @@ public class BuddyCast
     }
 
     private int connectPeer(long peerID) {
-        /* TODO: Don't always successfully connect to the peer */
+        /* TODOdaDon't always successfully connect to the peer */
         int result = 0; /* The connection was successful */
 
         assert (!isBlocked(peerID, sendBlockList));
@@ -589,7 +589,6 @@ public class BuddyCast
     }
 
     private void addPeerToConnList(long peerID, boolean connectible) {
-        // TODO: assert( isConnected(peer_name) );
         /*
          * See if the peer is already on one of the lists and remove
          */
@@ -597,7 +596,7 @@ public class BuddyCast
         connR.remove(peerID);
         unconnT.remove(peerID);
 
-        Long now = new Date().getTime();
+        Long now = CommonState.getTime();
         if (connectible) {
             if (!addPeerToConnT(peerID, now)) {
                 addPeerToConnR(peerID, now);
@@ -680,11 +679,11 @@ public class BuddyCast
         if (peerName == -1) {
             return;
         }
-        list.put(peerName, new Date().getTime() + blockInterval);
+        list.put(peerName, CommonState.getTime() + blockInterval);
     }
 
     private void updateBlockLists() {
-        Long now = new Date().getTime();
+        Long now = CommonState.getTime();
         /* Remove outdated entries */
         Iterator i;
         for (i = sendBlockList.values().iterator(); i.hasNext();) {
@@ -750,7 +749,7 @@ public class BuddyCast
         }
 
         /* Remove it if it's expired */
-        if (new Date().getTime() >= list.get(peerID)) {
+        if (CommonState.getTime() >= list.get(peerID)) {
             list.remove(peerID);
             return false;
         }
@@ -822,7 +821,7 @@ public class BuddyCast
     private Hashtable<Long, TasteBuddy> getTasteBuddies(
             int numTBs, int numTBPs, Long targetName) {
         Hashtable<Long, TasteBuddy> tbs = new Hashtable<Long, TasteBuddy>();
-        Long now = new Date().getTime();
+        Long now = CommonState.getTime();
 
         if (numTBs < numMsgTasteBuddies) {
             Vector<Long> ctb = new Vector<Long>(); // Connected taste buddies
@@ -873,11 +872,11 @@ public class BuddyCast
      */
     private Hashtable<Long, Long> getRandomPeers(int num, long targetName) {
         Hashtable<Long, Long> randomPeers = new Hashtable<Long, Long>(); // peer ID, long timestamp
-        Long now = new Date().getTime();
+        Long now = CommonState.getTime();
 
         /* We don't want more peers than available, let's pick some of them */
-        if (num <= maxConnR) { // TODO: is this correct?
-            ArrayList ids = new ArrayList(connR.keySet());
+        if (num <= maxConnR) {
+            ArrayList<Long> ids = new ArrayList<Long>(connR.keySet());
             ids.remove(targetName); /* Not including targetName */
             Collections.shuffle(ids, CommonState.r);
             Iterator i = ids.iterator();
@@ -912,7 +911,7 @@ public class BuddyCast
 
     private void closeConnection(long peerID) {
         if (connections.containsKey(peerID)) {
-            updateLastSeen(peerID, new Date().getTime());
+            updateLastSeen(peerID, CommonState.getTime());
             connections.remove(peerID);
             connT.remove(peerID);
             connR.remove(peerID);
@@ -942,11 +941,9 @@ public class BuddyCast
     }
 
     private Deque<Integer> getMyPreferences(int num) {
-        /* TODO: update my preferences */
         if (num == 0) {
             return myPreferences;
         } else {
-            // TODO: validate this
             ArrayDeque<Integer> result = new ArrayDeque<Integer>();
             Iterator it = myPreferences.descendingIterator();
             for (int i = 0; i < num && it.hasNext(); i++) {

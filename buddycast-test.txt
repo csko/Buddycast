@@ -2,7 +2,7 @@
 SIZE 100
 
 # parameters of periodic execution
-CYCLES 10
+CYCLES 5
 CYCLE SIZE*10000
 
 # parameters of message transfer
@@ -20,7 +20,6 @@ network.size SIZE
 simulation.endtime CYCLE*CYCLES
 simulation.logtime CYCLE
 
-
 ################### protocols ===========================
 
 protocol.bc buddycast.BuddyCast
@@ -31,8 +30,23 @@ protocol.tr UniformRandomTransport
 protocol.tr.mindelay 0
 protocol.tr.maxdelay 0
 
-
 ################### initialization ======================
 
 init.start buddycast.BuddyCastInitializer
 init.start.protocol bc
+
+#control.1 peersim.reports.DegreeStats
+#{
+#protocol bc
+#step 10
+#method freq
+#}
+
+#control.2 peersim.reports.GraphStats
+#{
+#protocol bc
+#nc SIZE
+#nl SIZE
+#step 10000
+#undir false
+#}
