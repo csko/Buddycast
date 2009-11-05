@@ -899,7 +899,7 @@ public class BuddyCast
         ArrayList tmp = new ArrayList(ctb);
         Deque result = new ArrayDeque();
         Collections.shuffle(tmp);
-        for (int i = 0; i < numTBs; i++) {
+        for (int i = 0; i < numTBs && tmp.size() > 0; i++) {
             result.add(tmp.remove(0));
         }
         return result;
@@ -940,6 +940,16 @@ public class BuddyCast
         return (int) (1000 * (double) (sim) / Math.sqrt(myPreferences.size() * peerPrefList.size()));
     }
 
+    /**
+     * Fill the peer's own preferences from the outside.
+     * @param prefs The preferences
+     */
+    public void addMyPreferences(Deque<Integer> prefs) {
+        for(Integer item : prefs){
+            myPreferences.add(item);
+        }
+    }
+
     private Deque<Integer> getMyPreferences(int num) {
         if (num == 0) {
             return myPreferences;
@@ -957,7 +967,7 @@ public class BuddyCast
         return peerPreferences.get(peerName);
     }
 
-    private int addPreferences(long peerID, Deque<Integer> prefs) {
+    int addPreferences(long peerID, Deque<Integer> prefs) {
         int changed = 0;
 
         for (Integer item : prefs) {
