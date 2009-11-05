@@ -1,9 +1,9 @@
 # network size
-SIZE 100
+SIZE 943
 
 # parameters of periodic execution
 CYCLES 5
-CYCLE SIZE*10000
+CYCLE SIZE
 
 # parameters of message transfer
 # delay values here are relative to cycle length, in percentage,
@@ -32,8 +32,14 @@ protocol.tr.maxdelay 0
 
 ################### initialization ======================
 
-init.start buddycast.BuddyCastInitializer
+init.start buddycast.RecommendationInitializer
 init.start.protocol bc
+
+init.rand WireKOut
+init.rand.protocol bc
+init.rand.k 10
+
+include.init start rand
 
 #control.1 peersim.reports.DegreeStats
 #{

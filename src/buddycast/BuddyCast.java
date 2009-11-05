@@ -1,8 +1,10 @@
 package buddycast;
 
 import java.util.*;
+import peersim.cdsim.CDSimulator;
 import peersim.config.FastConfig;
 import peersim.core.*;
+import peersim.edsim.CDScheduler;
 import peersim.edsim.EDProtocol;
 import peersim.edsim.EDSimulator;
 import peersim.transport.Transport;
@@ -20,7 +22,8 @@ public class BuddyCast
      * The number of Super Peers. TODO: this should be changeable.
      * NOTE: The first s peers are considered Super Peers (0, ..., s-1).
      */
-    final static int numSuperPeers = 5;
+    //final static int numSuperPeers = 5;
+    final static int numSuperPeers = 0; // Don't use superpeers
     /**
      * The array of the superpeers.
      */
