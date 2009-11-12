@@ -1,10 +1,8 @@
 package buddycast;
 
 import java.util.*;
-import peersim.cdsim.CDSimulator;
 import peersim.config.FastConfig;
 import peersim.core.*;
-import peersim.edsim.CDScheduler;
 import peersim.edsim.EDProtocol;
 import peersim.edsim.EDSimulator;
 import peersim.transport.Transport;
@@ -37,6 +35,15 @@ public class BuddyCast
             superpeers.add(new Long(i));
         }
     }
+    /**
+     * This is true when we are in the initialization state.
+     * It is useful to use this when we have numSuperPeers=0, because
+     * when we set up an overlay network through an other initializer, we
+     * might want to fill the candidates list too. If this init variable is
+     * true, the addNeighbor method will also add the peer to the candidates
+     * list.
+     */
+    boolean useInit = false;
 // ======================== peer containers ========================
 // =================================================================
     /**
@@ -133,6 +140,8 @@ public class BuddyCast
 // ======================== initialization =========================
 // =================================================================
 
+    private int protocolID; // TODO: static
+
     /**
      * Construtor. Creates the lists.
      * @param prefix The prefix of the protocol.
@@ -143,6 +152,7 @@ public class BuddyCast
         createLists();
         /* Always connectible */
         connectible = true;
+        protocolID = CommonState.getPid();
     }
 
     /**
@@ -191,11 +201,16 @@ public class BuddyCast
         if (!idToNode.containsKey(node.getID())) {
             idToNode.put(node.getID(), node);
         }
-        Long peerName = node.getID();
-        addPeer(peerName);
+        Long peerID = node.getID();
+        addPeer(peerID);
         Long now = CommonState.getTime();
-        updateLastSeen(peerName, now);
-        connections.put(peerName, now + timeout);
+        updateLastSeen(peerID, now);
+        connections.put(peerID, now + timeout);
+        if (useInit) {
+            /* Get the peer's items as if they were sent in a message */
+            addPreferences(peerID, ((BuddyCast) node.getProtocol(protocolID)).getMyPreferences(numMsgMyPrefs));
+            addConnCandidate(peerID, now);
+        }
         return true;
     }
 
@@ -456,7 +471,7 @@ public class BuddyCast
              */
             Node myNode = CommonState.getNode();
             CommonState.setNode(node);
-            ((BuddyCast) node.getProtocol(CommonState.getPid())).addNeighbor(myNode);
+            ((BuddyCast) node.getProtocol(protocolID)).addNeighbor(myNode);
             CommonState.setNode(myNode);
         }
 
@@ -481,6 +496,10 @@ public class BuddyCast
         }
         return targetName;
 
+    }
+
+    void setInit(boolean init) {
+        this.useInit = init;
     }
 
 // ======================== list handling ==========================
@@ -678,11 +697,11 @@ public class BuddyCast
         }
     }
 
-    private void blockPeer(long peerName, Hashtable<Long, Long> list) {
-        if (peerName == -1) {
+    private void blockPeer(long peerID, Hashtable<Long, Long> list) {
+        if (peerID == -1) {
             return;
         }
-        list.put(peerName, CommonState.getTime() + blockInterval);
+        list.put(peerID, CommonState.getTime() + blockInterval);
     }
 
     private void updateBlockLists() {
@@ -772,6 +791,13 @@ public class BuddyCast
         int maxSimilarity = -1; /* The similarity of the buddy */
         for (Long peer : candidates.keySet()) {
             Integer similarity = idToSimilarity.get(peer);
+            if(similarity == null){ // TODO: remove hack
+                idToSimilarity.put(peer, new Integer(0));
+                similarity = idToSimilarity.get(peer);
+            }
+            if(similarity == null){
+                System.out.println("");
+            }
             if (similarity > maxSimilarity) {
                 maxId = peer;
                 maxSimilarity = similarity;
@@ -948,7 +974,7 @@ public class BuddyCast
      * @param prefs The preferences
      */
     public void addMyPreferences(Deque<Integer> prefs) {
-        for(Integer item : prefs){
+        for (Integer item : prefs) {
             myPreferences.add(item);
         }
     }
@@ -966,8 +992,8 @@ public class BuddyCast
         }
     }
 
-    Deque<Integer> getPrefList(long peerName) {
-        return peerPreferences.get(peerName);
+    Deque<Integer> getPrefList(long peerID) {
+        return peerPreferences.get(peerID);
     }
 
     int addPreferences(long peerID, Deque<Integer> prefs) {
