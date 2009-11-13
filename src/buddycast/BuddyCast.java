@@ -139,7 +139,6 @@ public class BuddyCast
     private final long timeout = 5 * 60;
 // ======================== initialization =========================
 // =================================================================
-
     private int protocolID; // TODO: static
 
     /**
@@ -218,8 +217,9 @@ public class BuddyCast
     /**
      * Remove a neighbor.
      * @param peerID The neighbor peer's ID.
+     * @param symmre true, if there is a need to remove the other edge too
      */
-    private void removeNeighbor(Long peerID) {
+    private void removeNeighbor(Long peerID, boolean symmetric) {
 
         if (connections.containsKey(peerID)) {
             updateLastSeen(peerID, CommonState.getTime());
@@ -228,6 +228,17 @@ public class BuddyCast
             connT.remove(peerID);
             connR.remove(peerID);
             unconnT.remove(peerID);
+        }
+
+        if (symmetric) {
+            /* Switch to the neighbor node and remove the link
+             * NOTE: This is possibly a hack.
+             */
+            Node node = getNodeByID(peerID);
+            Node myNode = CommonState.getNode();
+            CommonState.setNode(node);
+            ((BuddyCast) node.getProtocol(protocolID)).removeNeighbor(peerID, false);
+            CommonState.setNode(myNode);
         }
     }
 
@@ -622,6 +633,9 @@ public class BuddyCast
         if (connectible) {
             if (!addPeerToConnT(peerID, now)) {
                 addPeerToConnR(peerID, now);
+                if(connT.size() > 0){
+                    System.out.println("");
+                }
             }
         } else {
             addPeerToUnConnT(peerID, now);
@@ -636,6 +650,9 @@ public class BuddyCast
      */
     boolean addPeerToConnT(long peerID, Long now) {
 
+        if(connT.size() > 0){
+            System.out.println("");
+        }
         if (connT.containsKey(peerID)) { /* Peer is already on the list */
             return true;
         }
@@ -683,7 +700,7 @@ public class BuddyCast
         if (!connR.contains(peerID)) {
             long outPeer = addNewPeerToConnList(connR, maxConnR, peerID, now);
             if (outPeer != -1) {
-                closeConnection(outPeer);
+                removeNeighbor(outPeer, true);
             }
         }
     }
@@ -692,7 +709,7 @@ public class BuddyCast
         if (!unconnT.contains(peerID)) {
             long outPeer = addNewPeerToConnList(unconnT, maxUnConnT, peerID, now);
             if (outPeer != -1) {
-                closeConnection(outPeer);
+                removeNeighbor(outPeer, true);
             }
         }
     }
@@ -791,11 +808,11 @@ public class BuddyCast
         int maxSimilarity = -1; /* The similarity of the buddy */
         for (Long peer : candidates.keySet()) {
             Integer similarity = idToSimilarity.get(peer);
-            if(similarity == null){ // TODO: remove hack
+            if (similarity == null) { // TODO: remove hack
                 idToSimilarity.put(peer, new Integer(0));
                 similarity = idToSimilarity.get(peer);
             }
-            if(similarity == null){
+            if (similarity == null) {
                 System.out.println("");
             }
             if (similarity > maxSimilarity) {
@@ -938,18 +955,8 @@ public class BuddyCast
         candidates.remove(targetName);
     }
 
-    private void closeConnection(long peerID) {
-        if (connections.containsKey(peerID)) {
-            updateLastSeen(peerID, CommonState.getTime());
-            connections.remove(peerID);
-            connT.remove(peerID);
-            connR.remove(peerID);
-            unconnT.remove(peerID);
-        }
-    }
 // ======================== preference related======================
 // =================================================================
-
     /**
      * Calculates the similarity between a peer and us.
      * @param peerID The peer's ID.

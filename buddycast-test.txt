@@ -32,14 +32,16 @@ protocol.tr.maxdelay 0
 
 ################### initialization ======================
 
+# this also uses WireKOut to set the initial random overlay network
 init.start buddycast.RecommendationInitializer
 init.start.protocol bc
+init.start.k 10
 
-init.rand WireKOut
-init.rand.protocol bc
-init.rand.k 10
+#init.rand WireKOut
+#init.rand.protocol bc
+#init.rand.k 10
 
-include.init start rand
+include.init start
 
 #control.1 peersim.reports.DegreeStats
 #{
