@@ -275,15 +275,15 @@ public class BuddyCast
      * @param event
      */
     public void processEvent(Node node, int pid, Object event) {
-        //System.err.println("[" + "] EVENT: " + node + " - " + pid + " " + event);
         if (event instanceof CycleMessage) {
-            /* Cycle message, schedule an other message in timeToWait time*/
+            /* Cycle message, schedule an other message in timeToWait time */
             EDSimulator.add(timeToWait, CycleMessage.getInstance(), node, pid);
 
-            /* Do the BuddyCast protocol */
+            /* Do the active BuddyCast protocol */
             work(pid);
+            System.out.println(CommonState.getNode().getID() + " " + CommonState.getTime());
         } else if (event instanceof BuddyCastMessage) {
-            System.out.println("BuddyCastMessage!");
+            //System.out.println("BuddyCastMessage!");
             /* Handle incoming BuddyCast message */
             BuddyCastMessage msg = (BuddyCastMessage) event;
 
@@ -465,7 +465,7 @@ public class BuddyCast
     }
 
     private int connectPeer(long peerID) {
-        /* TODOdaDon't always successfully connect to the peer */
+        /* TODO: Don't always successfully connect to the peer */
         int result = 0; /* The connection was successful */
 
         assert (!isBlocked(peerID, sendBlockList));
@@ -607,9 +607,10 @@ public class BuddyCast
      */
     int addPeer(long peerID) {
         /* Check if the peer is myself */
-        if (peerID == CommonState.getNode().getID()) {
-            return -1;
-        }
+//        if (peerID == CommonState.getNode().getID()) {
+//            System.exit(1);
+//            return -1;
+//        }
 
         /* TODO: this might need some refactoring */
         if (!idToConnTime.containsKey(peerID) &&
@@ -633,9 +634,6 @@ public class BuddyCast
         if (connectible) {
             if (!addPeerToConnT(peerID, now)) {
                 addPeerToConnR(peerID, now);
-                if(connT.size() > 0){
-                    System.out.println("");
-                }
             }
         } else {
             addPeerToUnConnT(peerID, now);
@@ -649,10 +647,6 @@ public class BuddyCast
      * @return True, if the peer was added, false otherwise.
      */
     boolean addPeerToConnT(long peerID, Long now) {
-
-        if(connT.size() > 0){
-            System.out.println("");
-        }
         if (connT.containsKey(peerID)) { /* Peer is already on the list */
             return true;
         }
@@ -808,13 +802,7 @@ public class BuddyCast
         int maxSimilarity = -1; /* The similarity of the buddy */
         for (Long peer : candidates.keySet()) {
             Integer similarity = idToSimilarity.get(peer);
-            if (similarity == null) { // TODO: remove hack
-                idToSimilarity.put(peer, new Integer(0));
-                similarity = idToSimilarity.get(peer);
-            }
-            if (similarity == null) {
-                System.out.println("");
-            }
+
             if (similarity > maxSimilarity) {
                 maxId = peer;
                 maxSimilarity = similarity;
@@ -944,7 +932,7 @@ public class BuddyCast
         /* NOTE: this could be optimized */
         ArrayList tmp = new ArrayList(ctb);
         Deque result = new ArrayDeque();
-        Collections.shuffle(tmp);
+        Collections.shuffle(tmp, CommonState.r);
         for (int i = 0; i < numTBs && tmp.size() > 0; i++) {
             result.add(tmp.remove(0));
         }
