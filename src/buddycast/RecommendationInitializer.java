@@ -50,13 +50,13 @@ public class RecommendationInitializer implements Control {
                 prefs.add(itemID);
                 bc.addMyPreferences(prefs);
                 bc.setInit(true);
-                EDSimulator.add(0, BuddyCast.CycleMessage.getInstance(), Network.get(i), protocolID);
             }
             /* Set the topology */
             WireKOut wire = new WireKOut(prefix);
             wire.execute();
-            for(Integer node : nodes){
+            for (Integer node : nodes) {
                 BuddyCast bc = (BuddyCast) Network.get(node).getProtocol(protocolID);
+                EDSimulator.add(0, BuddyCast.CycleMessage.getInstance(), Network.get(node), protocolID);
                 bc.setInit(false);
             }
 
