@@ -6,6 +6,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 
+import java.util.HashSet;
 import peersim.config.Configuration;
 import peersim.core.Control;
 import peersim.core.Network;
@@ -39,7 +40,7 @@ public class RecommendationInitializer implements Control {
             int i;
             int itemID;
             Deque<Integer> prefs = new ArrayDeque<Integer>();
-            ArrayList<Integer> nodes = new ArrayList<Integer>();
+            HashSet<Integer> nodes = new HashSet<Integer>();
             while ((line = br.readLine()) != null) {
                 split = line.split("\t");
                 i = Integer.parseInt(split[0]) - 1;
