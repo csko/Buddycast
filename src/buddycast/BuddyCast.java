@@ -509,7 +509,7 @@ public class BuddyCast
 
     }
 
-    void setInit(boolean init) {
+    public void setInit(boolean init) {
         this.useInit = init;
     }
 
@@ -1051,7 +1051,7 @@ public class BuddyCast
     /**
      * Singleton static Cycle Message class to keep the nodes running.
      */
-    final static class CycleMessage {
+    public final static class CycleMessage {
 
         /**
          * The instance.

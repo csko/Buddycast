@@ -1,9 +1,9 @@
-package buddycast;
+package recommendation;
 
+import buddycast.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 
 import java.util.HashSet;
