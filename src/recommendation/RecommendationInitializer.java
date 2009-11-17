@@ -62,6 +62,7 @@ public class RecommendationInitializer implements Control {
             }
             // load similarities from a file
             SimilarityMatrixFromFile sim =  SimilarityMatrixFromFile.getInstance();
+            sim.computeSimilarity(0, 1);
 
         } catch (Exception e) {
             e.printStackTrace();
