@@ -33,7 +33,7 @@ protocol.tr.maxdelay 0
 ################### initialization ======================
 
 # this also uses WireKOut to set the initial random overlay network
-init.start buddycast.RecommendationInitializer
+init.start recommendation.RecommendationInitializer
 init.start.protocol bc
 init.start.k 10
 

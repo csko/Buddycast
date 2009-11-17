@@ -60,6 +60,8 @@ public class RecommendationInitializer implements Control {
                 EDSimulator.add(0, BuddyCast.CycleMessage.getInstance(), Network.get(node), protocolID);
                 bc.setInit(false);
             }
+            // load similarities from a file
+            SimilarityMatrixFromFile sim =  SimilarityMatrixFromFile.getInstance();
 
         } catch (Exception e) {
             e.printStackTrace();
