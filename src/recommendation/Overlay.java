@@ -2,7 +2,7 @@ package recommendation;
 
 public class Overlay {
 
-    public void initialzeDesriptors(int pid) {
+    public void initializeDescriptors(int pid) {
     }
 
     public NodeDescriptor getDescriptor() {

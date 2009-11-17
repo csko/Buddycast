@@ -8,9 +8,8 @@ import java.io.IOException;
 import peersim.config.Configuration;
 import peersim.core.Control;
 import peersim.core.Network;
-import recommendation.CoFeMethod;
 
-public class NodeInitializer implements Control {
+public class OldNodeInitializer implements Control {
     //------------------------------------------------------------------------
     // Constants
     //------------------------------------------------------------------------
@@ -28,7 +27,7 @@ public class NodeInitializer implements Control {
     //------------------------------------------------------------------------
     // Constructor
     //------------------------------------------------------------------------
-    public NodeInitializer(String prefix) {
+    public OldNodeInitializer(String prefix) {
       apid = Configuration.getPid(prefix + "." + PAR_APROT);
       trainFileName = Configuration.getString(prefix + "." + PAR_TRAINFILENAME);
       evalFileName = Configuration.getString(prefix + "." + PAR_EVALFILENAME);
