@@ -14,6 +14,9 @@ MAXDELAY 0
 # drop is a probability, 0<=DROP<=1
 DROP 0
 
+# mean value of prediction scale
+MEAN 0
+
 random.seed 1234567890
 
 network.size SIZE
@@ -26,6 +29,10 @@ protocol.bc buddycast.BuddyCast
 protocol.bc.step CYCLE
 protocol.bc.transport tr
 
+protocol.appprot recommendation.CoFeMethod
+protocol.appprot.lnk bc
+protocol.appprot.mean_value MEAN
+
 protocol.tr UniformRandomTransport
 protocol.tr.mindelay 0
 protocol.tr.maxdelay 0
@@ -37,11 +44,17 @@ init.start recommendation.RecommendationInitializer
 init.start.protocol bc
 init.start.k 10
 
+init.appinit recommendation.NodeInitializer
+init.appinit.appprotocol appprot
+init.appinit.linkable bc
+init.appinit.train ./test/ua_norm.base
+init.appinit.eval ./test/ua_norm.test
+
 #init.rand WireKOut
 #init.rand.protocol bc
 #init.rand.k 10
 
-include.init start
+include.init appinit start
 
 #control.1 peersim.reports.DegreeStats
 #{

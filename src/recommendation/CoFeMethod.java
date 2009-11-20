@@ -3,11 +3,12 @@ package recommendation;
 import java.util.Map;
 import java.util.TreeMap;
 
+import peersim.cdsim.CDProtocol;
 import peersim.config.Configuration;
 import peersim.config.FastConfig;
 import peersim.core.Node;
 
-public abstract class CoFeMethod {
+public class CoFeMethod implements CDProtocol{
     //------------------------------------------------------------------------
     // Constants
     //------------------------------------------------------------------------
@@ -55,7 +56,7 @@ public abstract class CoFeMethod {
     //------------------------------------------------------------------------
     public double predicateItem(int itemID) {
         // get overlay
-        Overlay overlay = Overlay.getInstance();
+        Overlay overlay = getOverlay();
 
         // make prediction
         double prediction = 0.0;

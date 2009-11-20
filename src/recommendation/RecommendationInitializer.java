@@ -45,7 +45,7 @@ public class RecommendationInitializer implements Control {
                 split = line.split("\t");
                 i = Integer.parseInt(split[0]) - 1;
                 nodes.add(i);
-                itemID = Integer.parseInt(split[1]);
+                itemID = Integer.parseInt(split[1]) - 1;
                 BuddyCast bc = (BuddyCast) Network.get(i).getProtocol(protocolID);
                 prefs.clear();
                 prefs.add(itemID);
@@ -61,7 +61,7 @@ public class RecommendationInitializer implements Control {
                 bc.setInit(false);
             }
             // load similarities from a file
-            SimilarityMatrixFromFile sim =  SimilarityMatrixFromFile.getInstance();
+            SimilarityMatrixFromFile sim = SimilarityMatrixFromFile.getInstance();
             sim.computeSimilarity(0, 1);
 
         } catch (Exception e) {

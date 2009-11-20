@@ -30,15 +30,4 @@ public class Overlay {
     public int getNumberOfNeighbors() {
         return 0;
     }
-    private static Overlay instance = null;
-
-    private Overlay() {
-    }
-
-    public static Overlay getInstance() {
-        if (instance == null) {
-            instance = new Overlay();
-        }
-        return instance;
-    }
 }
