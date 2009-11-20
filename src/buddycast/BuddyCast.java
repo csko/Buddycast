@@ -25,14 +25,16 @@ public class BuddyCast
     /**
      * The array of the superpeers.
      */
-    private static ArrayList<Long> superpeers = new ArrayList<Long>();
+    private static ArrayList<Node> superpeers = new ArrayList<Node>();
 
     /**
      * Create superpeers.
      */
     static {
         for (int i = 0; i < numSuperPeers; i++) {
-            superpeers.add(new Long(i));
+            // TODO: test this
+            // NOTE: this does not work very well with network shuffle
+            superpeers.add(Network.get(i));
         }
     }
     /**
@@ -320,7 +322,7 @@ public class BuddyCast
                     /* It's a reply */
                     replyMsg.reply = true;
                     /* Send the message */
-                    Node senderNode = getNodeByID(msg.sender);
+                    Node senderNode = msg.sender;
                     ((Transport) node.getProtocol(FastConfig.getTransport(pid))).send(
                             CommonState.getNode(),
                             senderNode,
@@ -399,14 +401,13 @@ public class BuddyCast
         if (response == 0) { /* If connected successfully */
             BuddyCastMessage msg = createBuddyCastMessage(peer);
             /* Set the sender field */
-            msg.sender = CommonState.getNode().getID();
+            msg.sender = CommonState.getNode();
             /* Not a reply */
             msg.reply = false;
             /* Send it */
-            Node node = getNodeByID(peer);
-            ((Transport) node.getProtocol(FastConfig.getTransport(pid))).send(
+            ((Transport) peer.getProtocol(FastConfig.getTransport(pid))).send(
                     CommonState.getNode(),
-                    node,
+                    peer,
                     msg,
                     pid);
         }
@@ -422,9 +423,9 @@ public class BuddyCast
 
         Long now = CommonState.getTime();
         int i = 0;
-        for (Long peerID : superpeers) {
+        for (Node peerID : superpeers) {
             /* Don't add myself (as a superpeer) */
-            if (peerID != CommonState.getNode().getID()) {
+            if (peerID != CommonState.getNode()) {
                 if (i++ < numSuperPeers) {
                     addPeer(peerID);
                     updateLastSeen(peerID, now);
@@ -435,21 +436,21 @@ public class BuddyCast
         }
         /* NOTE: at this point, idToConnTime should only contain superpeers */
         /* Get the superpeers who are not on the block list */
-        Hashtable<Long, Long> superPeerList = new Hashtable<Long, Long>();
-        for (Long peerID : nodeToConnTime.keySet()) {
+        Hashtable<Node, Long> superPeerList = new Hashtable<Node, Long>();
+        for (Node peerID : nodeToConnTime.keySet()) {
             /* See if the peer is blocked */
             if (!isBlocked(peerID, sendBlockList)) {
                 superPeerList.put(peerID, nodeToConnTime.get(peerID));
             }
         }
         /* Add the most recent peers as candidates */
-        ArrayList<Long> recentPeers = selectRecentPeers(superPeerList, numSuperPeers);
-        for (Long peerID : recentPeers) {
+        ArrayList<Node> recentPeers = selectRecentPeers(superPeerList, numSuperPeers);
+        for (Node peerID : recentPeers) {
             addConnCandidate(peerID, nodeToConnTime.get(peerID));
         }
     }
 
-    private BuddyCastMessage createBuddyCastMessage(long targetName) {
+    private BuddyCastMessage createBuddyCastMessage(Node targetName) {
         BuddyCastMessage msg = new BuddyCastMessage();
         msg.myPrefs = getMyPreferences(numMsgMyPrefs);
         msg.tasteBuddies = getTasteBuddies(numMsgTasteBuddies, numMsgTBPrefs, targetName);
@@ -458,13 +459,12 @@ public class BuddyCast
         return msg;
     }
 
-    private int connectPeer(long peerID) {
+    private int connectPeer(Node node) {
         /* TODO: Don't always successfully connect to the peer */
         int result = 0; /* The connection was successful */
 
-        assert (!isBlocked(peerID, sendBlockList));
+        assert (!isBlocked(node, sendBlockList));
 
-        Node node = getNodeByID(peerID);
         if (node == null) { /* Node not found */
             return 1;
         }
@@ -703,7 +703,7 @@ public class BuddyCast
     }
 
     private void blockPeer(Node peerID, Hashtable<Node, Long> list) {
-        assert(peerID != null);
+        assert (peerID != null);
         list.put(peerID, CommonState.getTime() + blockInterval);
     }
 
@@ -795,8 +795,8 @@ public class BuddyCast
      * @param number The number of peers to select.
      * @return The peer list.
      */
-    public ArrayList<Long> selectRecentPeers(Hashtable<Node, Long> list, int number) {
-        ArrayList<Long> ret = new ArrayList<Long>(); // the resulting peer IDs
+    public ArrayList<Node> selectRecentPeers(Hashtable<Node, Long> list, int number) {
+        ArrayList<Node> ret = new ArrayList<Node>(); // the resulting peer IDs
         ArrayList<IDTimePair> peers = new ArrayList<IDTimePair>();
         for (Node peerID : list.keySet()) {
             /* Fill the peers array with the peerID/LastSeen pairs */
@@ -988,7 +988,7 @@ public class BuddyCast
      */
     void updateAllSimilarity(int item) {
         /* See who has this item */
-        for (Long peerID : peerPreferences.keySet()) {
+        for (Node peerID : peerPreferences.keySet()) {
             Deque<Integer> peerPrefList = peerPreferences.get(peerID);
             /* See if the item is on the list */
             if (peerPrefList.contains(item)) {
@@ -1041,18 +1041,19 @@ public class BuddyCast
     }
 
     /**
-     * A not-so-general pair class representing a peer ID and a last seen time.
+     * A not-so-general pair class representing a Node and a last seen time.
      */
     private final class IDTimePair implements Comparable {
 
-        private final Long first, second;
+        private final Node first;
+        private final Long second;
 
         /**
          * Constructor.
          * @param first The peer ID.
          * @param second The last seen time.
          */
-        IDTimePair(Long first, Long second) {
+        IDTimePair(Node first, Long second) {
             this.first = first;
             this.second = second;
         }
