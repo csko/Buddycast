@@ -2,6 +2,7 @@ package buddycast;
 
 import java.util.Deque;
 import java.util.Hashtable;
+import peersim.core.Node;
 
 /**
  *
@@ -12,9 +13,9 @@ class BuddyCastMessage {
     public BuddyCastMessage() {
     }
     /**
-     * The peer ID of the sender.
+     * The sender Node.
      */
-    Long sender;
+    Node sender;
     /**
      * The most recent 50 preferences of the active peer
      */
@@ -22,11 +23,11 @@ class BuddyCastMessage {
     /**
      * The list of taste buddies
      */
-    Hashtable<Long, TasteBuddy> tasteBuddies; // peerID, TB(prefs, lastSeen)
+    Hashtable<Node, TasteBuddy> tasteBuddies; // peerID, TB(prefs, lastSeen)
     /**
      * The list of random peers
      */
-    Hashtable<Long, Long> randomPeers; // peerID, lastSeen
+    Hashtable<Node, Long> randomPeers; // peerID, lastSeen
     /**
      * True if and only if the client is connectible.
      */

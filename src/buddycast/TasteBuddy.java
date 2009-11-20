@@ -1,6 +1,7 @@
 package buddycast;
 
 import java.util.Deque;
+import peersim.core.Node;
 
 /**
  *
@@ -8,7 +9,7 @@ import java.util.Deque;
  */
 class TasteBuddy {
 
-    private Long peerID;
+    private Node node;
     private Deque<Integer> prefs;
     private Long lastSeen;
 
@@ -20,12 +21,12 @@ class TasteBuddy {
         this.lastSeen = lastSeen;
     }
 
-    public Long getPeerID() {
-        return peerID;
+    public Node getNode() {
+        return node;
     }
 
-    public void setPeerID(Long peerID) {
-        this.peerID = peerID;
+    public void setNode(Node peerID) {
+        this.node = peerID;
     }
 
     public Deque<Integer> getPrefs() {
