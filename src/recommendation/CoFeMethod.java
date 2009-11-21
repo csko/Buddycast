@@ -93,7 +93,6 @@ public class CoFeMethod implements CDProtocol {
     }
 
     public void nextCycle(Node currentNode, int currentProtocolID) {
-        System.out.println("CYCLE!!");
         this.currentProtocolID = currentProtocolID;
 
         // clear earlier predictions

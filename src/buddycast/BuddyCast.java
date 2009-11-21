@@ -6,6 +6,7 @@ import peersim.core.*;
 import peersim.edsim.EDProtocol;
 import peersim.edsim.EDSimulator;
 import peersim.transport.Transport;
+import recommendation.SimilarityMatrixFromFile;
 
 /**
  * Event driven implementation of the BuddyCast protocol.
@@ -38,6 +39,10 @@ public class BuddyCast
         }
     }
     /**
+     * Use recommendation related similarity function?
+     */
+    private static boolean recommendation = true;
+    /**
      * This is true when we are in the initialization state.
      * It is useful to use this when we have numSuperPeers=0, because
      * when we set up an overlay network through an other initializer, we
@@ -51,7 +56,7 @@ public class BuddyCast
     /**
      * TODO: It would be nice to somehow reduce the number of lists here.
      */
-    private Hashtable<Node, Integer> nodeToSimilarity;
+    private Hashtable<Node, Double> nodeToSimilarity;
     private Hashtable<Node, Long> nodeToConnTime;
     /* List of active TCP connections */
     Hashtable<Node, Long> connections; // Peer ID, keep-alivetimeout
@@ -159,7 +164,7 @@ public class BuddyCast
      * Create the lists.
      */
     private void createLists() {
-        nodeToSimilarity = new Hashtable<Node, Integer>();
+        nodeToSimilarity = new Hashtable<Node, Double>();
         nodeToConnTime = new Hashtable<Node, Long>();
         connections = new Hashtable<Node, Long>();
         connT = new Hashtable<Node, Long>(maxConnT);
@@ -609,7 +614,7 @@ public class BuddyCast
         if (!nodeToConnTime.containsKey(peerID) &&
                 !nodeToSimilarity.containsKey(peerID)) {
             nodeToConnTime.put(peerID, new Long(0));
-            nodeToSimilarity.put(peerID, new Integer(0));
+            nodeToSimilarity.put(peerID, new Double(0));
             return 1;
         }
         return 0;
@@ -644,7 +649,7 @@ public class BuddyCast
             return true;
         }
 
-        int sim = nodeToSimilarity.get(peerID);
+        double sim = nodeToSimilarity.get(peerID);
 
         if (sim > 0) {
             /* The list is not full, we don't have to remove */
@@ -655,11 +660,11 @@ public class BuddyCast
                 /* Get the peer with minimal similarity */
                 Long minPeerTime = now + 1;
                 Node minPeerID = null;
-                int minSim = Integer.MAX_VALUE;
+                double minSim = Double.POSITIVE_INFINITY;
 
                 for (Node peer : connT.keySet()) {
                     Long peerTime = connT.get(peer);
-                    int peerSim = nodeToSimilarity.get(peer);
+                    double peerSim = nodeToSimilarity.get(peer);
 
                     if (peerSim < minSim ||
                             (peerSim == minSim && peerTime < minPeerTime)) {
@@ -760,9 +765,9 @@ public class BuddyCast
      */
     private Node selectTasteBuddy() {
         Node maxId = null; /* The buddy Node */
-        int maxSimilarity = -1; /* The similarity of the buddy */
+        double maxSimilarity = Double.NEGATIVE_INFINITY; /* The similarity of the buddy */
         for (Node peer : candidates.keySet()) {
-            Integer similarity = nodeToSimilarity.get(peer);
+            Double similarity = nodeToSimilarity.get(peer);
 
             if (similarity > maxSimilarity) {
                 maxId = peer;
@@ -911,7 +916,12 @@ public class BuddyCast
      * @param peerID The peer's ID.
      * @return The similarity value.
      */
-    private int getSimilarity(Node peerID) {
+    private double getSimilarity(Node peerID) {
+        /* NOTE: this is recommendation specific */
+        if(recommendation){
+            SimilarityMatrixFromFile sim = SimilarityMatrixFromFile.getInstance();
+            return sim.computeSimilarity(maxConnT, maxConnT);
+        }
         int sim = 0;
         Deque<Integer> peerPrefList = getPrefList(peerID);
         for (Integer pref : myPreferences) {

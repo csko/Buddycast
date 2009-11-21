@@ -55,11 +55,22 @@ init.appinit.eval ./test/ua_norm.test
 #init.rand.protocol bc
 #init.rand.k 10
 
+init.predinit recommendation.PredictionInitializer
+init.predinit.protocol appprot
+
 init.sch CDScheduler
 init.sch.protocol appprot
 
 
-include.init appinit start sch
+include.init appinit predinit start sch
+
+###################### reports ==========================
+
+control.mae recommendation.BuddyCastErrorObserver
+control.mae.protocol bc
+control.mae.appprotocol appprot
+control.mae.step 15
+
 
 #control.1 peersim.reports.DegreeStats
 #{
