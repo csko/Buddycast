@@ -30,8 +30,9 @@ protocol.bc.step CYCLE
 protocol.bc.transport tr
 
 protocol.appprot recommendation.CoFeMethod
-protocol.appprot.lnk bc
+protocol.appprot.linkable bc
 protocol.appprot.mean_value MEAN
+protocol.appprot.step 15
 
 protocol.tr UniformRandomTransport
 protocol.tr.mindelay 0
@@ -54,7 +55,11 @@ init.appinit.eval ./test/ua_norm.test
 #init.rand.protocol bc
 #init.rand.k 10
 
-include.init appinit start
+init.sch CDScheduler
+init.sch.protocol appprot
+
+
+include.init appinit start sch
 
 #control.1 peersim.reports.DegreeStats
 #{

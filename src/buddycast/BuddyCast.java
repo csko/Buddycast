@@ -203,7 +203,6 @@ public class BuddyCast
         connections.put(node, now + timeout);
         if (useInit) {
             /* Get the peer's items as if they were sent in a message */
-            // TODO: pick 50 random!!!
             addPreferences(node, ((BuddyCast) node.getProtocol(protocolID)).getMyPreferences(numMsgMyPrefs));
             addConnCandidate(node, now);
         }
@@ -936,6 +935,11 @@ public class BuddyCast
         }
     }
 
+    /**
+     * Return a number of most recent preferences.
+     * @param num Number of preferences.
+     * @return The preferences.
+     */
     private Deque<Integer> getMyPreferences(int num) {
         if (num == 0) {
             return myPreferences;
@@ -949,6 +953,11 @@ public class BuddyCast
         }
     }
 
+    /**
+     * Return a peer's stored preference list.
+     * @param peerID The peer.
+     * @return The preference list.
+     */
     Deque<Integer> getPrefList(Node peerID) {
         return peerPreferences.get(peerID);
     }

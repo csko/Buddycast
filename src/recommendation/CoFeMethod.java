@@ -1,14 +1,16 @@
 package recommendation;
 
+import buddycast.BuddyCast;
 import java.util.Map;
 import java.util.TreeMap;
 
 import peersim.cdsim.CDProtocol;
 import peersim.config.Configuration;
 import peersim.config.FastConfig;
+import peersim.core.CommonState;
 import peersim.core.Node;
 
-public class CoFeMethod implements CDProtocol{
+public class CoFeMethod implements CDProtocol {
     //------------------------------------------------------------------------
     // Constants
     //------------------------------------------------------------------------
@@ -55,22 +57,27 @@ public class CoFeMethod implements CDProtocol{
     // Methods
     //------------------------------------------------------------------------
     public double predicateItem(int itemID) {
-        // get overlay
-        Overlay overlay = getOverlay();
-
         // make prediction
         double prediction = 0.0;
         double aggregatedSimilarity = 0.0;
         boolean existsValue = false;
 
-        for (int neighborIdx = 0; neighborIdx < overlay.getNumberOfNeighbors(); neighborIdx++) {
-            // get rating of target item from neighbor
-            Double neighborRate = getRate(overlay, neighborIdx, itemID);
-            // get neighbor similarity
-            double neighborSimilarity = getSimilarity(overlay, neighborIdx);
-            // get the neighbor's mean of rates
-            Double neighborMeanRate = getMeanRate(overlay, neighborIdx);
+        int linkableID = FastConfig.getLinkable(currentProtocolID);
+        BuddyCast bc = (BuddyCast) CommonState.getNode().getProtocol(linkableID);
 
+        for (int i = 0; i < bc.degree(); i++) {
+            Node neighborID = bc.getNeighbor(i);
+            CoFeMethod method = (CoFeMethod) neighborID.getProtocol(
+                    CommonState.getPid());
+
+            // get rating of target item from neighbor
+            Double neighborRate = method.getItemRate(itemID);
+            // get neighbor similarity
+            SimilarityMatrixFromFile sim = SimilarityMatrixFromFile.getInstance();
+            double neighborSimilarity = sim.computeSimilarity((int) CommonState.getNode().getID(),
+                    (int) neighborID.getID());
+            // get the neighbor's mean of rates
+            Double neighborMeanRate = method.getMeanRate();
             // aggregate
             if (neighborRate != null) {
                 existsValue = true;
@@ -86,6 +93,7 @@ public class CoFeMethod implements CDProtocol{
     }
 
     public void nextCycle(Node currentNode, int currentProtocolID) {
+        System.out.println("CYCLE!!");
         this.currentProtocolID = currentProtocolID;
 
         // clear earlier predictions
@@ -96,25 +104,6 @@ public class CoFeMethod implements CDProtocol{
             double prediction = predicateItem(itemID);
             predictions.put(itemID, prediction);
         }
-    }
-
-    protected Overlay getOverlay() {
-        // get the connection layer i.e. the overlay
-        int linkableID = FastConfig.getLinkable(currentProtocolID);
-        return (Overlay) node.getProtocol(linkableID);
-    }
-
-    protected Double getRate(Overlay overlay, int neighborIdx, int itemID) {
-        NodeDescriptor desc = overlay.getDescriptor(neighborIdx);
-        return desc.getRates().get(itemID);
-    }
-
-    protected Double getSimilarity(Overlay overlay, int neighborIdx) {
-        return overlay.getSimilarity(neighborIdx);
-    }
-
-    protected Double getMeanRate(Overlay overlay, int neighborIdx) {
-        return overlay.getDescriptor(neighborIdx).getMeanRate();
     }
 
     //------------------------------------------------------------------------
@@ -160,13 +149,5 @@ public class CoFeMethod implements CDProtocol{
 
     public Double getEvalRate(int itemID) {
         return evalRates.get(itemID);
-    }
-
-    public Node getNode() {
-        return node;
-    }
-
-    public void setNode(Node node) {
-        this.node = node;
     }
 }
