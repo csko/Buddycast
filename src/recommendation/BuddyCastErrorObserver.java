@@ -100,7 +100,7 @@ public class BuddyCastErrorObserver extends GraphObserver {
             }*/
 
             // print MAE
-            System.out.println("MAE = " + mae + ", maxSelection = " + maxSelection);
+            System.out.println("MAE= " + mae + " maxSelection= " + maxSelection);
 
             // print degree distribution
             //for (int inDegree : degreeDist.keySet()) {

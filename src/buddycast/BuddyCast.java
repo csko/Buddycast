@@ -281,7 +281,7 @@ public class BuddyCast
 
             /* Do the active BuddyCast protocol */
             work(pid);
-            System.out.println(CommonState.getNode().getID() + " " + CommonState.getTime());
+//            System.out.println(CommonState.getNode().getID() + " " + CommonState.getTime());
         } else if (event instanceof BuddyCastMessage) {
             //System.out.println("BuddyCastMessage!");
             /* Handle incoming BuddyCast message */

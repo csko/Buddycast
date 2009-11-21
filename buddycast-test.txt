@@ -34,7 +34,7 @@ protocol.appprot.linkable bc
 protocol.appprot.mean_value MEAN
 protocol.appprot.step 15
 
-protocol.tr UniformRandomTransport
+protocol.tr peersim.transport.UniformRandomTransport
 protocol.tr.mindelay 0
 protocol.tr.maxdelay 0
 
@@ -58,7 +58,7 @@ init.appinit.eval ./test/ua_norm.test
 init.predinit recommendation.PredictionInitializer
 init.predinit.protocol appprot
 
-init.sch CDScheduler
+init.sch peersim.edsim.CDScheduler
 init.sch.protocol appprot
 
 
