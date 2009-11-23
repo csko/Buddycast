@@ -48,7 +48,7 @@ public class RecommendationInitializer implements Control {
                 itemID = Integer.parseInt(split[1]) - 1;
                 BuddyCast bc = (BuddyCast) Network.get(i).getProtocol(protocolID);
                 prefs.clear();
-                prefs.add(itemID);
+                //prefs.add(itemID);
                 bc.addMyPreferences(prefs);
                 bc.setInit(true);
             }

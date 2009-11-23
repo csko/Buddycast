@@ -860,9 +860,15 @@ public class BuddyCast
                 if (!peer.equals(targetName)) {
                     /* Set up the taste buddy */
                     TasteBuddy tb = new TasteBuddy();
+                    Deque<Integer> peerPrefs = peerPreferences.get(peer);
+                    if (peerPrefs == null) { // TODO: this shouldn't happen
+                        peerPrefs = new ArrayDeque<Integer>(maxPeerPreferences);
+                        addPreferences(peer, peerPrefs);
+                    }
+
                     tb.setPrefs(
                             (Deque<Integer>) randomSelectList(
-                            peerPreferences.get(peer),
+                            peerPrefs,
                             numTBPs));
                     tb.setLastSeen(now);
                     tb.setNode(peer);
@@ -986,6 +992,7 @@ public class BuddyCast
         int changed = 0;
 
         for (Integer item : prefs) {
+            // TODO: move this out of the loop?
             if (!peerPreferences.containsKey(peerID)) {
                 peerPreferences.put(peerID,
                         new ArrayDeque<Integer>(maxPeerPreferences));
