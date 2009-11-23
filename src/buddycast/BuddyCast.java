@@ -110,7 +110,8 @@ public class BuddyCast
     /**
      * The number of maximum preferences stored per peer.
      */
-    private final int maxPeerPreferences = 500;
+    // TODO Change back to 500
+    private final int maxPeerPreferences = 100000;
 // ======================== message and behavior ===================
 // =================================================================
     /**
@@ -208,6 +209,9 @@ public class BuddyCast
         connections.put(node, now + timeout);
         if (useInit) {
             /* Get the peer's items as if they were sent in a message */
+            if (connT.size() < maxConnT) {
+                //connT.put(node, now);
+            }
             addPreferences(node, ((BuddyCast) node.getProtocol(protocolID)).getMyPreferences(numMsgMyPrefs));
             addConnCandidate(node, now);
         }
@@ -649,7 +653,9 @@ public class BuddyCast
             return true;
         }
 
-        double sim = nodeToSimilarity.get(peerID);
+        //double sim = nodeToSimilarity.get(peerID);
+        // TODO: need to call updateSimilarities() so nodeToSimilarity gets updated
+        double sim = getSimilarity(peerID);
 
         if (sim > 0) {
             /* The list is not full, we don't have to remove */
@@ -664,7 +670,9 @@ public class BuddyCast
 
                 for (Node peer : connT.keySet()) {
                     Long peerTime = connT.get(peer);
-                    double peerSim = nodeToSimilarity.get(peer);
+                    //double peerSim = nodeToSimilarity.get(peer);
+                    // TODO: same as above
+                    double peerSim = getSimilarity(peer);
 
                     if (peerSim < minSim ||
                             (peerSim == minSim && peerTime < minPeerTime)) {
@@ -767,7 +775,9 @@ public class BuddyCast
         Node maxId = null; /* The buddy Node */
         double maxSimilarity = Double.NEGATIVE_INFINITY; /* The similarity of the buddy */
         for (Node peer : candidates.keySet()) {
-            Double similarity = nodeToSimilarity.get(peer);
+            //Double similarity = nodeToSimilarity.get(peer);
+            // TODO: update similarities, etc
+            Double similarity = getSimilarity(peer);
 
             if (similarity > maxSimilarity) {
                 maxId = peer;
@@ -918,9 +928,9 @@ public class BuddyCast
      */
     private double getSimilarity(Node peerID) {
         /* NOTE: this is recommendation specific */
-        if(recommendation){
+        if (recommendation) {
             SimilarityMatrixFromFile sim = SimilarityMatrixFromFile.getInstance();
-            return sim.computeSimilarity(maxConnT, maxConnT);
+            return sim.computeSimilarity((int) CommonState.getNode().getID(), (int) peerID.getID());
         }
         int sim = 0;
         Deque<Integer> peerPrefList = getPrefList(peerID);
