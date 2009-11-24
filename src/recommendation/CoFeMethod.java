@@ -1,6 +1,7 @@
 package recommendation;
 
 import buddycast.BuddyCast;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -65,8 +66,8 @@ public class CoFeMethod implements CDProtocol {
         int linkableID = FastConfig.getLinkable(currentProtocolID);
         BuddyCast bc = (BuddyCast) CommonState.getNode().getProtocol(linkableID);
 
-        for (int i = 0; i < bc.degree(); i++) {
-            Node neighborID = bc.getNeighbor(i);
+        Hashtable<Node, Long> tasteBuddies = bc.getConnT();
+        for (Node neighborID : tasteBuddies.keySet()) {
             CoFeMethod method = (CoFeMethod) neighborID.getProtocol(
                     CommonState.getPid());
 

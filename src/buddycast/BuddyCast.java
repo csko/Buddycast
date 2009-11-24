@@ -209,9 +209,7 @@ public class BuddyCast
         connections.put(node, now + timeout);
         if (useInit) {
             /* Get the peer's items as if they were sent in a message */
-            if (connT.size() < maxConnT) {
-                //connT.put(node, now);
-            }
+            addPeerToConnList(node, true); // TODO: always connectible
             addPreferences(node, ((BuddyCast) node.getProtocol(protocolID)).getMyPreferences(numMsgMyPrefs));
             addConnCandidate(node, now);
         }
@@ -295,6 +293,8 @@ public class BuddyCast
             if (isBlocked(msg.sender, recvBlockList)) {
                 return;
             }
+
+            // TODO: see if the peer is on our connections list?
 
             int changed = 0;
             changed += addPreferences(msg.sender, msg.myPrefs);
@@ -659,7 +659,7 @@ public class BuddyCast
 
         if (sim > 0) {
             /* The list is not full, we don't have to remove */
-            if (connT.size() <= maxConnT) {
+            if (connT.size() < maxConnT) {
                 connT.put(peerID, now);
                 return true;
             } else { /* The list is full, we need to remove the least similar peer */
@@ -878,6 +878,18 @@ public class BuddyCast
             }
         }
         return tbs;
+    }
+
+    public Hashtable<Node, Long> getConnT() {
+        return connT;
+    }
+
+    public Hashtable<Node, Long> getConnR() {
+        return connR;
+    }
+
+    public Hashtable<Node, Long> getUnConnT() {
+        return unconnT;
     }
 
     /**
