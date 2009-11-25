@@ -286,7 +286,7 @@ public class BuddyCast
 //            System.out.println(CommonState.getNode().getID() + " " + CommonState.getTime());
         } else if (event instanceof BuddyCastMessage) {
             // NOTE: This is load related statistics
-            incrementSelection();
+
             //System.out.println("BuddyCastMessage!");
             /* Handle incoming BuddyCast message */
             BuddyCastMessage msg = (BuddyCastMessage) event;
@@ -295,6 +295,8 @@ public class BuddyCast
             if (isBlocked(msg.sender, recvBlockList)) {
                 return;
             }
+
+            incrementSelection();
 
             // TODO: see if the peer is on our connections list?
 
