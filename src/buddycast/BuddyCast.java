@@ -1122,7 +1122,8 @@ public class BuddyCast
             }
         }
     }
-    // Load related...
+// ========================== statistics ===========================
+// =================================================================
     private int selection = 0;
 
     public int getSelection() {
@@ -1135,5 +1136,18 @@ public class BuddyCast
 
     public void initSelection() {
         this.selection = 0;
+    }
+
+    public int getBlockSize() {
+        HashSet<Node> blockedPeers = new HashSet<Node>();
+        for (Node peer : recvBlockList.keySet()) {
+            blockedPeers.add(peer);
+        }
+        for (Node peer : sendBlockList.keySet()) {
+            blockedPeers.add(peer);
+        }
+
+        return blockedPeers.size();
+
     }
 }
