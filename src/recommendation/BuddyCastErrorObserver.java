@@ -1,6 +1,7 @@
 package recommendation;
 
 import buddycast.BuddyCast;
+import java.util.Hashtable;
 import java.util.Map;
 
 import peersim.config.Configuration;
@@ -75,10 +76,10 @@ public class BuddyCastErrorObserver extends GraphObserver {
                 }*/
 
                 // compute max selection and handle selection counters
-                //if (overlay.getSelectionCounter() > maxSelection) {
-//          maxSelection = overlay.getSelectionCounter();
-//        }
-//        overlay.initSelectionCounter();
+                if (overlay.getSelection() > maxSelection) {
+                    maxSelection = overlay.getSelection();
+                }
+                overlay.initSelection();
             }
             // normalize error
             mae /= numOfPreds;
@@ -101,7 +102,22 @@ public class BuddyCastErrorObserver extends GraphObserver {
 
             // print MAE
             System.out.println("MAE= " + mae + " maxSelection= " + maxSelection);
-
+            /*
+            if (mae < 0.80) {
+            // print the neighbor matrix
+            for (int i = 0; i < g.size(); i++) {
+            System.out.print(i + " ");
+            Node currentNode = (Node) g.getNode(i);
+            BuddyCast overlay = (BuddyCast) currentNode.getProtocol(pid);
+            Hashtable<Node, Long> tbs = overlay.getConnT();
+            for (Node node : tbs.keySet()) {
+            System.out.print(node.getID() + " ");
+            }
+            System.out.println("");
+            }
+            System.exit(1);
+            }
+             */
             // print degree distribution
             //for (int inDegree : degreeDist.keySet()) {
             //  int freq = degreeDist.get(inDegree);

@@ -285,6 +285,8 @@ public class BuddyCast
             work(pid);
 //            System.out.println(CommonState.getNode().getID() + " " + CommonState.getTime());
         } else if (event instanceof BuddyCastMessage) {
+            // NOTE: This is load related statistics
+            incrementSelection();
             //System.out.println("BuddyCastMessage!");
             /* Handle incoming BuddyCast message */
             BuddyCastMessage msg = (BuddyCastMessage) event;
@@ -657,7 +659,7 @@ public class BuddyCast
         // TODO: need to call updateSimilarities() so nodeToSimilarity gets updated
         double sim = getSimilarity(peerID);
 
-        if (sim > 0) {
+        if (sim > -10) { // TODO: fix back
             /* The list is not full, we don't have to remove */
             if (connT.size() < maxConnT) {
                 connT.put(peerID, now);
@@ -1117,5 +1119,19 @@ public class BuddyCast
                 return -1;
             }
         }
+    }
+    // Load related...
+    private int selection = 0;
+
+    public int getSelection() {
+        return selection;
+    }
+
+    public void incrementSelection() {
+        this.selection++;
+    }
+
+    public void initSelection() {
+        this.selection = 0;
     }
 }
