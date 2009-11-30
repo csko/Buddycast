@@ -144,6 +144,10 @@ public class BuddyCast
      * The connection timeout.
      */
     private final long timeout = 5 * 60;
+// ============================ memory =============================
+// =================================================================
+    private boolean preserveMemory = false;
+    final int initialCapacity = Math.min(5, maxConnT);
 // ======================== initialization =========================
 // =================================================================
     private int protocolID; // TODO: static
@@ -165,17 +169,31 @@ public class BuddyCast
      * Create the lists.
      */
     private void createLists() {
-        nodeToSimilarity = new Hashtable<Node, Double>();
-        nodeToConnTime = new Hashtable<Node, Long>();
-        connections = new Hashtable<Node, Long>();
-        connT = new Hashtable<Node, Long>(maxConnT);
-        connR = new Hashtable<Node, Long>(maxConnR);
-        unconnT = new Hashtable<Node, Long>(maxUnConnT);
-        candidates = new Hashtable<Node, Long>(maxCandidates);
-        recvBlockList = new Hashtable<Node, Long>();
-        sendBlockList = new Hashtable<Node, Long>();
-        myPreferences = new ArrayDeque<Integer>(numMsgMyPrefs);
-        peerPreferences = new Hashtable<Node, Deque<Integer>>();
+        if (preserveMemory) {
+            nodeToSimilarity = new Hashtable<Node, Double>();
+            nodeToConnTime = new Hashtable<Node, Long>();
+            connections = new Hashtable<Node, Long>(initialCapacity);
+            connT = new Hashtable<Node, Long>(initialCapacity);
+            connR = new Hashtable<Node, Long>(initialCapacity);
+            unconnT = new Hashtable<Node, Long>(initialCapacity);
+            candidates = new Hashtable<Node, Long>(initialCapacity);
+            recvBlockList = new Hashtable<Node, Long>();
+            sendBlockList = new Hashtable<Node, Long>();
+            myPreferences = new ArrayDeque<Integer>(numMsgMyPrefs);
+            peerPreferences = new Hashtable<Node, Deque<Integer>>();
+        } else {
+            nodeToSimilarity = new Hashtable<Node, Double>();
+            nodeToConnTime = new Hashtable<Node, Long>();
+            connections = new Hashtable<Node, Long>(maxConnT + maxConnR);
+            connT = new Hashtable<Node, Long>(maxConnT);
+            connR = new Hashtable<Node, Long>(maxConnR);
+            unconnT = new Hashtable<Node, Long>(maxUnConnT);
+            candidates = new Hashtable<Node, Long>(maxCandidates);
+            recvBlockList = new Hashtable<Node, Long>();
+            sendBlockList = new Hashtable<Node, Long>();
+            myPreferences = new ArrayDeque<Integer>(numMsgMyPrefs);
+            peerPreferences = new Hashtable<Node, Deque<Integer>>();
+        }
     }
 
 // ======================== Linkable ===============================
