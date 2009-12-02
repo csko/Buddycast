@@ -10,6 +10,7 @@ import java.util.HashSet;
 import peersim.config.Configuration;
 import peersim.core.Control;
 import peersim.core.Network;
+import peersim.core.Node;
 import peersim.dynamics.WireKOut;
 import peersim.edsim.EDSimulator;
 
@@ -40,36 +41,42 @@ public class RecommendationInitializer implements Control {
             BufferedReader br = new BufferedReader(new FileReader(fileName));
             String line;
             String[] split;
-            int i;
+            //int i;
             int itemID;
-            Deque<Integer> prefs = new ArrayDeque<Integer>();
-            HashSet<Integer> nodes = new HashSet<Integer>();
-            while ((line = br.readLine()) != null) {
-                split = line.split("\t");
-                i = Integer.parseInt(split[0]) - 1;
+            //Deque<Integer> prefs = new ArrayDeque<Integer>();
+            //HashSet<Integer> nodes = new HashSet<Integer>();
+            for (int i = 0; i < Network.size(); i++) {
                 BuddyCast bc = (BuddyCast) Network.get(i).getProtocol(protocolID);
-                if (!nodes.contains(i)) {
-                    nodes.add(i);
-                    bc.setInit(true);
-                }
-                itemID = Integer.parseInt(split[1]) - 1;
-                prefs.clear();
-                // TODO: uncomment
-                //prefs.add(itemID);
-                bc.addMyPreferences(prefs);
-                
+                bc.setInit(true);
             }
+            // Load the items
+            /*
+            while ((line = br.readLine()) != null) {
+            split = line.split("\t");
+            i = Integer.parseInt(split[0]) - 1;
+            BuddyCast bc = (BuddyCast) Network.get(i).getProtocol(protocolID);
+            if (!nodes.contains(i)) {
+            nodes.add(i);
+            bc.setInit(true);
+            }
+            itemID = Integer.parseInt(split[1]) - 1;
+            prefs.clear();
+            prefs.add(itemID);
+            bc.addMyPreferences(prefs);
+            }*/
+
             /* Set the topology */
             WireKOut wire = new WireKOut(prefix);
             wire.execute();
-            for (Integer node : nodes) {
-                BuddyCast bc = (BuddyCast) Network.get(node).getProtocol(protocolID);
-                EDSimulator.add(0, BuddyCast.CycleMessage.getInstance(), Network.get(node), protocolID);
+            for (int i = 0; i < Network.size(); i++) {
+                Node node = Network.get(i);
+                BuddyCast bc = (BuddyCast) Network.get(i).getProtocol(protocolID);
+                EDSimulator.add(0, BuddyCast.CycleMessage.getInstance(), node, protocolID);
                 bc.setInit(false);
             }
             // load similarities from a file
-            SimilarityMatrixFromFile sim = SimilarityMatrixFromFile.getInstance();
-            sim.computeSimilarity(0, 1);
+            //SimilarityMatrixFromFile sim = SimilarityMatrixFromFile.getInstance();
+            //sim.computeSimilarity(0, 1);
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -946,7 +946,7 @@ public class BuddyCast
     }
 
     private Collection randomSelectList(Collection ctb, int numTBs) {
-        /* NOTE: this could be optimized */
+        /* NOTE: this should be optimized */
         ArrayList tmp = new ArrayList(ctb);
         Deque result = new ArrayDeque();
         Collections.shuffle(tmp, CommonState.r);
