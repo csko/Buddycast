@@ -7,7 +7,7 @@ import java.io.ObjectInputStream;
 
 public class SimilarityMatrixFromFile {
 
-    private static final String similarityFileName = "test/ua_norm.base_similarities_cofe_cos_cent";
+    private static String similarityFileName;// = "test/ua_norm.base_similarities_cofe_cos_cent";
     private static float[][] similarities = null;
     private static SimilarityMatrixFromFile instance = null;
 
@@ -41,4 +41,9 @@ public class SimilarityMatrixFromFile {
         }
         return instance;
     }
+
+    public static void setSimilarityFileName(String similarityFileName) {
+        SimilarityMatrixFromFile.similarityFileName = similarityFileName;
+    }
+
 }

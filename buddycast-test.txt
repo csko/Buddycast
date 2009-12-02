@@ -44,12 +44,14 @@ protocol.tr.maxdelay 0
 init.start recommendation.RecommendationInitializer
 init.start.protocol bc
 init.start.k 10
+init.start.filename test/ua_norm.base
 
 init.appinit recommendation.NodeInitializer
 init.appinit.appprotocol appprot
 init.appinit.linkable bc
 init.appinit.train ./test/ua_norm.base
 init.appinit.eval ./test/ua_norm.test
+init.appinit.similarity test/ua_norm.base_similarities_cofe_cos_cent
 
 #init.rand WireKOut
 #init.rand.protocol bc

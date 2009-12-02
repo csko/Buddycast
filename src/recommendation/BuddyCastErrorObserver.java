@@ -112,21 +112,22 @@ public class BuddyCastErrorObserver extends GraphObserver {
             // print MAE
             System.out.println("MAE= " + mae + " maxSelection= " + maxSelection + " " + minBS + " " + " " + avgBS + " " + maxBS);
 
-
+            /*
             if (CommonState.getTime() > 1500) {
-                // print the neighbor matrix
-                for (int i = 0; i < g.size(); i++) {
-                    System.out.print(i + " ");
-                    Node currentNode = (Node) g.getNode(i);
-                    BuddyCast overlay = (BuddyCast) currentNode.getProtocol(pid);
-                    Hashtable<Node, Long> tbs = overlay.getConnT();
-                    for (Node node : tbs.keySet()) {
-                        System.out.print(node.getID() + " ");
-                    }
-                    System.out.println("");
-                }
-                return true;
+            // print the neighbor matrix
+            for (int i = 0; i < g.size(); i++) {
+            System.out.print(i + " ");
+            Node currentNode = (Node) g.getNode(i);
+            BuddyCast overlay = (BuddyCast) currentNode.getProtocol(pid);
+            Hashtable<Node, Long> tbs = overlay.getConnT();
+            for (Node node : tbs.keySet()) {
+            System.out.print(node.getID() + " ");
             }
+            System.out.println("");
+            }
+            return true;
+            }
+             */
             // print degree distribution
             //for (int inDegree : degreeDist.keySet()) {
             //  int freq = degreeDist.get(inDegree);

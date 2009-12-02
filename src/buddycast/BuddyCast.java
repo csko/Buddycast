@@ -228,7 +228,8 @@ public class BuddyCast
         if (useInit) {
             /* Get the peer's items as if they were sent in a message */
             addPeerToConnList(node, true); // TODO: always connectible
-            addPreferences(node, ((BuddyCast) node.getProtocol(protocolID)).getMyPreferences(numMsgMyPrefs));
+            // TODO: uncomment this line
+            //addPreferences(node, ((BuddyCast) node.getProtocol(protocolID)).getMyPreferences(numMsgMyPrefs));
             addConnCandidate(node, now);
         }
         return true;

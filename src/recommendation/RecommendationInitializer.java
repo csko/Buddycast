@@ -24,17 +24,20 @@ public class RecommendationInitializer implements Control {
      * @config
      */
     private static final String PAR_PROT = "protocol";
+    private static final String PAR_FILENAME = "filename";
     private final int protocolID;
     private String prefix;
+    private final String fileName;
 
     public RecommendationInitializer(String prefix) {
         protocolID = Configuration.getPid(prefix + "." + PAR_PROT);
+        fileName = Configuration.getString(prefix + "." + PAR_FILENAME);
         this.prefix = prefix;
     }
 
     public boolean execute() {
         try {
-            BufferedReader br = new BufferedReader(new FileReader("test/ua_norm.base"));
+            BufferedReader br = new BufferedReader(new FileReader(fileName));
             String line;
             String[] split;
             int i;
