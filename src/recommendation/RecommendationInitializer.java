@@ -47,13 +47,17 @@ public class RecommendationInitializer implements Control {
             while ((line = br.readLine()) != null) {
                 split = line.split("\t");
                 i = Integer.parseInt(split[0]) - 1;
-                nodes.add(i);
-                itemID = Integer.parseInt(split[1]) - 1;
                 BuddyCast bc = (BuddyCast) Network.get(i).getProtocol(protocolID);
+                if (!nodes.contains(i)) {
+                    nodes.add(i);
+                    bc.setInit(true);
+                }
+                itemID = Integer.parseInt(split[1]) - 1;
                 prefs.clear();
+                // TODO: uncomment
                 //prefs.add(itemID);
                 bc.addMyPreferences(prefs);
-                bc.setInit(true);
+                
             }
             /* Set the topology */
             WireKOut wire = new WireKOut(prefix);
