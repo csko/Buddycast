@@ -483,7 +483,12 @@ public class BuddyCast
 
     private BuddyCastMessage createBuddyCastMessage(Node targetName) {
         BuddyCastMessage msg = new BuddyCastMessage();
-        msg.myPrefs = getMyPreferences(numMsgMyPrefs);
+        /* NOTE: When doing a recommendation, we are sending the whole item list */
+        if (recommendation) {
+            msg.myPrefs = getMyPreferences(0);
+        } else {
+            msg.myPrefs = getMyPreferences(numMsgMyPrefs);
+        }
         msg.tasteBuddies = getTasteBuddies(numMsgTasteBuddies, numMsgTBPrefs, targetName);
         msg.randomPeers = getRandomPeers(numMsgRandomPeers, targetName);
         msg.connectible = connectible;
@@ -885,8 +890,13 @@ public class BuddyCast
                     TasteBuddy tb = new TasteBuddy();
                     Deque<Integer> peerPrefs = peerPreferences.get(peer);
                     if (peerPrefs == null) { // TODO: this shouldn't happen
-                        peerPrefs = new ArrayDeque<Integer>(maxPeerPreferences);
-                        addPreferences(peer, peerPrefs);
+                        /* NOTE: When doing a recommendation, we are using a precalculated similarity function */
+                        if (recommendation) {
+                            peerPrefs = new ArrayDeque<Integer>(1);
+                        } else {
+                            peerPrefs = new ArrayDeque<Integer>(maxPeerPreferences);
+                            addPreferences(peer, peerPrefs);
+                        }
                     }
 
                     tb.setPrefs(
@@ -1035,6 +1045,16 @@ public class BuddyCast
     }
 
     int addPreferences(Node peerID, Deque<Integer> prefs) {
+        /* NOTE: When doing a recommendation, we use a precalculated similarity function */
+        if (recommendation) {
+            if (!peerPreferences.containsKey(peerID)) {
+                peerPreferences.put(peerID,
+                        new ArrayDeque<Integer>(0));
+            }
+            return 0;
+
+        }
+
         int changed = 0;
 
         if (!peerPreferences.containsKey(peerID)) {
