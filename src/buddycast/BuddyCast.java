@@ -109,9 +109,9 @@ public class BuddyCast
     private int maxCandidates = 50;
     /**
      * The number of maximum preferences stored per peer.
+     * 0 means no limit.
      */
-    // TODO Change back to 500
-    private final int maxPeerPreferences = 100000;
+    private final int maxPeerPreferences = 500;
 // ======================== message and behavior ===================
 // =================================================================
     /**
@@ -868,8 +868,8 @@ public class BuddyCast
                     /* Set up the taste buddy */
                     TasteBuddy tb = new TasteBuddy();
                     tb.setPrefs(
-                            (Deque<Integer>) randomSelectList(
-                            peerPreferences.get(peer),
+                            randomSelectItems(
+                            (ArrayDeque<Integer>) peerPreferences.get(peer),
                             numTBPs));
                     tb.setLastSeen(now);
                     tb.setNode(peer);
@@ -890,9 +890,8 @@ public class BuddyCast
                     }
 
                     tb.setPrefs(
-                            (Deque<Integer>) randomSelectList(
-                            peerPrefs,
-                            numTBPs));
+                            randomSelectItems(
+                            (ArrayDeque<Integer>) peerPrefs, numTBPs));
                     tb.setLastSeen(now);
                     tb.setNode(peer);
 
@@ -952,6 +951,18 @@ public class BuddyCast
         Collections.shuffle(tmp, CommonState.r);
         for (int i = 0; i < numTBs && tmp.size() > 0; i++) {
             result.add(tmp.remove(0));
+        }
+        return result;
+    }
+
+    private Deque<Integer> randomSelectItems(ArrayDeque<Integer> ctb, int numTBs) {
+        /* NOTE: this should be optimized */
+        //ArrayDeque<Integer> tmp = ctb.clone();
+        ArrayDeque<Integer> result = new ArrayDeque<Integer>();
+        ArrayList<Integer> tmpList = new ArrayList<Integer>(ctb);
+        Collections.shuffle(tmpList, CommonState.r);
+        for (int i = 0; i < numTBs && tmpList.size() > 0; i++) {
+            result.add(tmpList.remove(0));
         }
         return result;
     }
@@ -1026,15 +1037,15 @@ public class BuddyCast
     int addPreferences(Node peerID, Deque<Integer> prefs) {
         int changed = 0;
 
-        for (Integer item : prefs) {
-            // TODO: move this out of the loop?
-            if (!peerPreferences.containsKey(peerID)) {
-                peerPreferences.put(peerID,
-                        new ArrayDeque<Integer>(maxPeerPreferences));
-                /* NOTE: maximum storage size is specified here */
-            }
-            Deque<Integer> peerPrefList = peerPreferences.get(peerID);
+        if (!peerPreferences.containsKey(peerID)) {
+            peerPreferences.put(peerID,
+                    new ArrayDeque<Integer>(maxPeerPreferences));
+            /* NOTE: maximum storage size is specified here */
+        }
 
+        Deque<Integer> peerPrefList = peerPreferences.get(peerID);
+
+        for (Integer item : prefs) {
             /* It is not on the peer's preference list, let's put it on */
             if (!peerPrefList.contains(item)) {
                 if (!peerPrefList.offer(item)) {
