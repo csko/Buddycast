@@ -26,8 +26,12 @@ simulation.logtime SIZE
 ################### protocols ===========================
 
 protocol.bc buddycast.BuddyCast
-protocol.bc.step CYCLE
-protocol.bc.transport tr
+{
+step CYCLE
+transport tr
+preservememory true
+useprefs false
+}
 
 protocol.appprot recommendation.CoFeMethod
 protocol.appprot.linkable bc
