@@ -1,6 +1,7 @@
 package buddycast;
 
 import java.util.*;
+import peersim.config.Configuration;
 import peersim.config.FastConfig;
 import peersim.core.*;
 import peersim.edsim.EDProtocol;
@@ -31,6 +32,7 @@ public class BuddyCast
     private static final String PAR_NUMMSGTBPREFS = "nummsgtbprefs";
     private static final String PAR_TIMEOUT = "timeout";
     private static final String PAR_PRESERVEMEMORY = "preservememory";
+    private static final String PAR_USEPREFS = "useprefs";
     private String prefix;
 // ======================== network related ========================
 // =================================================================
@@ -59,7 +61,7 @@ public class BuddyCast
     /**
      * Use recommendation related similarity function?
      */
-    private static boolean recommendation = true;
+    private static boolean usePrefs = true;
     /**
      * This is true when we are in the initialization state.
      * It is useful to use this when we have numSuperPeers=0, because
@@ -112,57 +114,57 @@ public class BuddyCast
     /**
      * The maximum number of connectible taste buddies stored.
      */
-    private int maxConnT = 10;
+    private int maxConnT;
     /**
      * The maximum number of unconnectible peers stored.
      */
-    private int maxUnConnT = 10;
+    private int maxUnConnT;
     /**
      * The maximum number of connectible random peers stored.
      */
-    private int maxConnR = 10;
+    private int maxConnR;
     /**
      * The maximum number of connection candidates stored.
      */
-    private int maxCandidates = 50;
+    private int maxCandidates;
     /**
      * The number of maximum preferences stored per peer.
      * 0 means no limit.
      */
-    private final int maxPeerPrefs = 500;
+    private int maxPeerPrefs;
 // ======================== message and behavior ===================
 // =================================================================
     /**
      * Time to wait between two active thread activizations.
      */
-    static final long delay = 15;
+    static long delay;
     /**
      * The exploitation-to-exploration ratio.
      * (the higher it is, exploration is done with a higher probability)
      */
-    private final double alpha = 0.5;
-    private final long blockInterval = 4 * 60 * 60;
+    private double alpha;
+    private long blockInterval;
     //private final long blockInterval = 30;
     /**
      * The number of my own preferences sent in a message.
      */
-    private final int numMsgMyPrefs = 50;
+    private int numMsgMyPrefs;
     /**
      * The number of random peers in a message.
      */
-    private final int numMsgRandomPeers = 10;
+    private int numMsgRandomPeers;
     /**
      * The number of Taste Buddies in a message.
      */
-    private final int numMsgTasteBuddies = 10;
+    private int numMsgTasteBuddies;
     /**
      * The number of Taste Buddy preferences in a message.
      */
-    private final int numMsgTBPrefs = 20;
+    private int numMsgTBPrefs;
     /**
      * The connection timeout.
      */
-    private final long timeout = 5 * 60;
+    private long timeout;
 // ============================ memory =============================
 // =================================================================
     private boolean preserveMemory = true;
@@ -177,6 +179,25 @@ public class BuddyCast
      */
     public BuddyCast(String prefix) {
         this.prefix = prefix;
+        /* Read configuration */
+        maxConnT = Configuration.getInt(prefix + "." + PAR_MAXCONNT, 10);
+        maxConnR = Configuration.getInt(prefix + "." + PAR_MAXCONNR, 10);
+        maxUnConnT = Configuration.getInt(prefix + "." + PAR_MAXUNCONNT, 10);
+        maxCandidates = Configuration.getInt(prefix + "." + PAR_MAXCANDIDATES, 50);
+        maxPeerPrefs = Configuration.getInt(prefix + "." + PAR_MAXPEERPREFS, 500);
+        delay = Configuration.getInt(prefix + "." + PAR_DELAY, 15);
+        alpha = Configuration.getDouble(prefix + "." + PAR_ALPHA, 0.5);
+        blockInterval = Configuration.getInt(prefix + "." + PAR_BLOCKINTERVAL, 4 * 60 * 60);
+        numMsgMyPrefs = Configuration.getInt(prefix + "." + PAR_NUMMSGMYPREFS, 50);
+        numMsgRandomPeers = Configuration.getInt(prefix + "." + PAR_NUMMSGRANDOMPEERS, 10);
+        numMsgTasteBuddies = Configuration.getInt(prefix + "." + PAR_NUMMSGTASTEBUDDIES, 10);
+        numMsgTBPrefs = Configuration.getInt(prefix + "." + PAR_NUMMSGTBPREFS, 20);
+        timeout = Configuration.getInt(prefix + "." + PAR_TIMEOUT, 5*60);
+        preserveMemory = Configuration.getBoolean(prefix + "." + PAR_PRESERVEMEMORY, true);
+        usePrefs = Configuration.getBoolean(prefix + "." + PAR_USEPREFS, false);
+        
+
+
         /* Initialization of the collections */
         createLists();
         /* Always connectible */
@@ -248,9 +269,8 @@ public class BuddyCast
             /* Get the peer's items as if they were sent in a message */
             addPeerToConnList(node, true); // TODO: always connectible
             // TODO: uncomment this line
-            if (!recommendation) {
-                addPreferences(node, ((BuddyCast) node.getProtocol(protocolID)).getMyPreferences(numMsgMyPrefs));
-            }
+            // TODO: This is buggy because the items of that peer might have not been initialized yet
+            //addPreferences(node, ((BuddyCast) node.getProtocol(protocolID)).getMyPreferences(numMsgMyPrefs));
             addConnCandidate(node, now);
         }
         return true;
@@ -348,6 +368,7 @@ public class BuddyCast
                     updateLastSeen(tb.getNode(), tb.getLastSeen());
                 }
                 changed += addPreferences(tb.getNode(), tb.getPrefs());
+
                 addConnCandidate(tb.getNode(), tb.getLastSeen());
             }
 
@@ -504,8 +525,8 @@ public class BuddyCast
     private BuddyCastMessage createBuddyCastMessage(Node targetName) {
         BuddyCastMessage msg = new BuddyCastMessage();
         /* NOTE: When doing a recommendation, we are sending the whole item list */
-        if (recommendation) {
-            msg.myPrefs = getMyPreferences(0);
+        if (usePrefs) {
+            msg.myPrefs = null;
         } else {
             msg.myPrefs = getMyPreferences(numMsgMyPrefs);
         }
@@ -893,7 +914,7 @@ public class BuddyCast
                 if (!peer.equals(targetName)) {
                     /* Set up the taste buddy */
                     TasteBuddy tb = new TasteBuddy();
-                    if (recommendation) {
+                    if (usePrefs) {
                         tb.setPrefs(null);
                     } else {
                         tb.setPrefs(
@@ -913,24 +934,24 @@ public class BuddyCast
                 if (!peer.equals(targetName)) {
                     /* Set up the taste buddy */
                     TasteBuddy tb = new TasteBuddy();
-                    Deque<Integer> peerPrefs = peerPreferences.get(peer);
-                    if (peerPrefs == null) { // TODO: this shouldn't happen
-                        /* NOTE: When doing a recommendation, we are using a precalculated similarity function */
-                        if (recommendation) {
-                            peerPrefs = new ArrayDeque<Integer>(1);
-                        } else {
+                    if (!usePrefs) {
+                        Deque<Integer> peerPrefs = peerPreferences.get(peer);
+                        if (peerPrefs == null) { // TODO: this shouldn't happen
+                            /**
+                             * NOTE: When doing a recommendation,
+                             * we are using a precalculated similarity function
+                             */
                             peerPrefs = new ArrayDeque<Integer>(maxPeerPrefs);
                             addPreferences(peer, peerPrefs);
+                            tb.setPrefs(
+                                    randomSelectItems(
+                                    (ArrayDeque<Integer>) peerPrefs, numTBPs));
+
                         }
+                    } else {
+                        tb.setPrefs(null);
                     }
 
-                    if (recommendation) {
-                        tb.setPrefs(null);
-                    }else{
-                        tb.setPrefs(
-                                randomSelectItems(
-                                (ArrayDeque<Integer>) peerPrefs, numTBPs));
-                    }
                     tb.setLastSeen(now);
                     tb.setNode(peer);
 
@@ -1023,7 +1044,7 @@ public class BuddyCast
      */
     private double getSimilarity(Node peerID) {
         /* NOTE: this is recommendation specific */
-        if (recommendation) {
+        if (usePrefs) {
             SimilarityMatrixFromFile sim = SimilarityMatrixFromFile.getInstance();
             return sim.computeSimilarity((int) CommonState.getNode().getID(), (int) peerID.getID());
         }
@@ -1045,8 +1066,10 @@ public class BuddyCast
      * @param prefs The preferences
      */
     public void addMyPreferences(Deque<Integer> prefs) {
-        for (Integer item : prefs) {
-            myPreferences.add(item);
+        if (!usePrefs) {
+            for (Integer item : prefs) {
+                myPreferences.add(item);
+            }
         }
     }
 
@@ -1056,6 +1079,9 @@ public class BuddyCast
      * @return The preferences.
      */
     private Deque<Integer> getMyPreferences(int num) {
+        if (usePrefs) {
+            return null;
+        }
         if (num == 0) {
             return myPreferences;
         } else {
@@ -1079,13 +1105,8 @@ public class BuddyCast
 
     int addPreferences(Node peerID, Deque<Integer> prefs) {
         /* NOTE: When doing a recommendation, we use a precalculated similarity function */
-        if (recommendation) {
-            if (!peerPreferences.containsKey(peerID)) {
-                peerPreferences.put(peerID,
-                        new ArrayDeque<Integer>(0));
-            }
+        if (usePrefs) {
             return 0;
-
         }
 
         int changed = 0;
