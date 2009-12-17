@@ -31,7 +31,6 @@ public class BuddyCast
     private static final String PAR_NUMMSGTBPREFS = "nummsgtbprefs";
     private static final String PAR_TIMEOUT = "timeout";
     private static final String PAR_PRESERVEMEMORY = "preservememory";
-
     private String prefix;
 // ======================== network related ========================
 // =================================================================
@@ -45,10 +44,11 @@ public class BuddyCast
      * The array of the superpeers.
      */
     private static ArrayList<Node> superpeers = new ArrayList<Node>();
-
     /**
      * Create superpeers.
      */
+
+
     static {
         for (int i = 0; i < numSuperPeers; i++) {
             // TODO: test this
@@ -142,6 +142,7 @@ public class BuddyCast
      */
     private final double alpha = 0.5;
     private final long blockInterval = 4 * 60 * 60;
+    //private final long blockInterval = 30;
     /**
      * The number of my own preferences sent in a message.
      */
@@ -164,7 +165,7 @@ public class BuddyCast
     private final long timeout = 5 * 60;
 // ============================ memory =============================
 // =================================================================
-    private boolean preserveMemory = false;
+    private boolean preserveMemory = true;
     final int initialCapacity = Math.min(5, maxConnT);
 // ======================== initialization =========================
 // =================================================================
@@ -840,7 +841,7 @@ public class BuddyCast
      * @return The ID of the peer.
      */
     private Node selectRandomPeer() {
-        long i = 0;
+        int i = 0;
         int r = CommonState.r.nextInt(candidates.size());
         for (Node peer : candidates.keySet()) {
             if (i == r) {
@@ -892,10 +893,14 @@ public class BuddyCast
                 if (!peer.equals(targetName)) {
                     /* Set up the taste buddy */
                     TasteBuddy tb = new TasteBuddy();
-                    tb.setPrefs(
-                            randomSelectItems(
-                            (ArrayDeque<Integer>) peerPreferences.get(peer),
-                            numTBPs));
+                    if (recommendation) {
+                        tb.setPrefs(null);
+                    } else {
+                        tb.setPrefs(
+                                randomSelectItems(
+                                (ArrayDeque<Integer>) peerPreferences.get(peer),
+                                numTBPs));
+                    }
                     tb.setLastSeen(now);
                     tb.setNode(peer);
 
@@ -919,9 +924,13 @@ public class BuddyCast
                         }
                     }
 
-                    tb.setPrefs(
-                            randomSelectItems(
-                            (ArrayDeque<Integer>) peerPrefs, numTBPs));
+                    if (recommendation) {
+                        tb.setPrefs(null);
+                    }else{
+                        tb.setPrefs(
+                                randomSelectItems(
+                                (ArrayDeque<Integer>) peerPrefs, numTBPs));
+                    }
                     tb.setLastSeen(now);
                     tb.setNode(peer);
 
@@ -1084,7 +1093,7 @@ public class BuddyCast
         if (!peerPreferences.containsKey(peerID)) {
             peerPreferences.put(peerID,
                     new ArrayDeque<Integer>(maxPeerPrefs));
-            /* NOTE: maximum storage size is specified here */
+        /* NOTE: maximum storage size is specified here */
         }
 
         Deque<Integer> peerPrefList = peerPreferences.get(peerID);
@@ -1189,7 +1198,7 @@ public class BuddyCast
             IDTimePair pair = (IDTimePair) p;
             if (this.second < pair.second) {
                 return 1;
-            } else if (this.second == pair.second) {
+            } else if (this.second.equals(pair.second)) {
                 return 0;
             } else {
                 return -1;

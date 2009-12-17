@@ -109,8 +109,8 @@ public class CoFeMethod implements CDProtocol {
     //------------------------------------------------------------------------
     // The following methods used for testing and initialization only!!!
     //------------------------------------------------------------------------
-    public Double getMeanRate() {
-        Double avg = (sumOfRates / ((double) numOfRatedItems));
+    public double getMeanRate() {
+        double avg = (sumOfRates / ((double) numOfRatedItems));
         return (numOfRatedItems == 0 || Double.isNaN(avg)) ? null : avg;
     }
 
