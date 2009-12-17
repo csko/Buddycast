@@ -14,6 +14,24 @@ import recommendation.SimilarityMatrixFromFile;
 public class BuddyCast
         implements EDProtocol, Linkable {
 
+    // ------------------------------------------------------------------------
+    // Parameters
+    // ------------------------------------------------------------------------
+    private static final String PAR_MAXCONNT = "maxconnt";
+    private static final String PAR_MAXCONNR = "maxconnr";
+    private static final String PAR_MAXUNCONNT = "maxuconnt";
+    private static final String PAR_MAXCANDIDATES = "maxcandidates";
+    private static final String PAR_MAXPEERPREFS = "maxpeerprefs";
+    private static final String PAR_DELAY = "delay";
+    private static final String PAR_ALPHA = "alpha";
+    private static final String PAR_BLOCKINTERVAL = "blockinterval";
+    private static final String PAR_NUMMSGMYPREFS = "nummsgmyprefs";
+    private static final String PAR_NUMMSGRANDOMPEERS = "nummsgrandompeers";
+    private static final String PAR_NUMMSGTASTEBUDDIES = "nummsgtastebuddies";
+    private static final String PAR_NUMMSGTBPREFS = "nummsgtbprefs";
+    private static final String PAR_TIMEOUT = "timeout";
+    private static final String PAR_PRESERVEMEMORY = "preservememory";
+
     private String prefix;
 // ======================== network related ========================
 // =================================================================
@@ -111,13 +129,13 @@ public class BuddyCast
      * The number of maximum preferences stored per peer.
      * 0 means no limit.
      */
-    private final int maxPeerPreferences = 500;
+    private final int maxPeerPrefs = 500;
 // ======================== message and behavior ===================
 // =================================================================
     /**
-     * Time to wait before doing the buddycast protocol.
+     * Time to wait between two active thread activizations.
      */
-    static final long timeToWait = 15;
+    static final long delay = 15;
     /**
      * The exploitation-to-exploration ratio.
      * (the higher it is, exploration is done with a higher probability)
@@ -229,7 +247,9 @@ public class BuddyCast
             /* Get the peer's items as if they were sent in a message */
             addPeerToConnList(node, true); // TODO: always connectible
             // TODO: uncomment this line
-            //addPreferences(node, ((BuddyCast) node.getProtocol(protocolID)).getMyPreferences(numMsgMyPrefs));
+            if (!recommendation) {
+                addPreferences(node, ((BuddyCast) node.getProtocol(protocolID)).getMyPreferences(numMsgMyPrefs));
+            }
             addConnCandidate(node, now);
         }
         return true;
@@ -298,14 +318,12 @@ public class BuddyCast
     public void processEvent(Node node, int pid, Object event) {
         if (event instanceof CycleMessage) {
             /* Cycle message, schedule an other message in timeToWait time */
-            EDSimulator.add(timeToWait, CycleMessage.getInstance(), node, pid);
+            EDSimulator.add(delay, CycleMessage.getInstance(), node, pid);
 
             /* Do the active BuddyCast protocol */
             work(pid);
 //            System.out.println(CommonState.getNode().getID() + " " + CommonState.getTime());
         } else if (event instanceof BuddyCastMessage) {
-            // NOTE: This is load related statistics
-
             //System.out.println("BuddyCastMessage!");
             /* Handle incoming BuddyCast message */
             BuddyCastMessage msg = (BuddyCastMessage) event;
@@ -315,6 +333,7 @@ public class BuddyCast
                 return;
             }
 
+            // NOTE: This is load related statistics
             incrementSelection();
 
             // TODO: see if the peer is on our connections list?
@@ -324,7 +343,7 @@ public class BuddyCast
 
             /* Use the Taste Buddy list provided in the message */
             for (TasteBuddy tb : msg.tasteBuddies.values()) {
-                if (addPeer(tb.getNode()) == 1) { /* Peer successfully added */
+                if (addPeer(tb.getNode()) == 1) { /* Peer newly added */
                     updateLastSeen(tb.getNode(), tb.getLastSeen());
                 }
                 changed += addPreferences(tb.getNode(), tb.getPrefs());
@@ -333,7 +352,7 @@ public class BuddyCast
 
             /* Use the Random Peer list provided in the message */
             for (Node peer : msg.randomPeers.keySet()) {
-                if (addPeer(peer) == 1) { /* Peer successfully added */
+                if (addPeer(peer) == 1) { /* Peer newly added */
                     updateLastSeen(peer, msg.randomPeers.get(peer));
                 }
                 addConnCandidate(peer, msg.randomPeers.get(peer));
@@ -571,6 +590,7 @@ public class BuddyCast
             candidates.put(peerID, lastSeen);
             return;
         } else {/* The list is full, remove the oldest entry */
+            // TODO: linear search is a performance bottleneck here
             /* Find the oldest entry */
             Node oldestPeer = null;
             long oldestPeerTime = Long.MAX_VALUE;
@@ -685,7 +705,7 @@ public class BuddyCast
         // TODO: need to call updateSimilarities() so nodeToSimilarity gets updated
         double sim = getSimilarity(peerID);
 
-        if (sim > -10) { // TODO: fix back
+        if (sim > 0) {
             /* The list is not full, we don't have to remove */
             if (connT.size() < maxConnT) {
                 connT.put(peerID, now);
@@ -894,7 +914,7 @@ public class BuddyCast
                         if (recommendation) {
                             peerPrefs = new ArrayDeque<Integer>(1);
                         } else {
-                            peerPrefs = new ArrayDeque<Integer>(maxPeerPreferences);
+                            peerPrefs = new ArrayDeque<Integer>(maxPeerPrefs);
                             addPreferences(peer, peerPrefs);
                         }
                     }
@@ -910,6 +930,10 @@ public class BuddyCast
             }
         }
         return tbs;
+    }
+
+    public Hashtable<Node, Long> getConnections() {
+        return connections;
     }
 
     public Hashtable<Node, Long> getConnT() {
@@ -1059,7 +1083,7 @@ public class BuddyCast
 
         if (!peerPreferences.containsKey(peerID)) {
             peerPreferences.put(peerID,
-                    new ArrayDeque<Integer>(maxPeerPreferences));
+                    new ArrayDeque<Integer>(maxPeerPrefs));
             /* NOTE: maximum storage size is specified here */
         }
 

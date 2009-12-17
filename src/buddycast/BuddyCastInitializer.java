@@ -33,7 +33,7 @@ public class BuddyCastInitializer implements Control {
         }
         /* Then all the other peers should act in random order */
         for (int i = BuddyCast.numSuperPeers; i < Network.size(); i++) {
-            EDSimulator.add(CommonState.r.nextLong(BuddyCast.timeToWait + 1),
+            EDSimulator.add(CommonState.r.nextLong(BuddyCast.delay + 1),
                     CycleMessage.getInstance(), Network.get(i), protocolID);
         }
         return false;
