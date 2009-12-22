@@ -33,6 +33,7 @@ public class BuddyCastErrorObserver extends GraphObserver {
     // Methods
     //------------------------------------------------------------------------
     public boolean execute() {
+        System.gc();
         boolean ret = false;
 
         try {
@@ -61,7 +62,7 @@ public class BuddyCastErrorObserver extends GraphObserver {
                 // compute error
                 for (int itemID : expecteds.keySet()) {
                     double expected = expecteds.get(itemID);
-                    Double predicted = predictions.get(itemID);
+                    double predicted = predictions.get(itemID);
 
                     //System.err.println(userID + "\t" + itemID + "\t" + expected + "\t" + predicted + "\t" + predictions.size());
 

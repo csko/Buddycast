@@ -46,11 +46,10 @@ public class BuddyCast
      * The array of the superpeers.
      */
     private static ArrayList<Node> superpeers = new ArrayList<Node>();
+
     /**
      * Create superpeers.
      */
-
-
     static {
         for (int i = 0; i < numSuperPeers; i++) {
             // TODO: test this
@@ -61,7 +60,7 @@ public class BuddyCast
     /**
      * Use recommendation related similarity function?
      */
-    private static boolean usePrefs = true;
+    private boolean usePrefs;
     /**
      * This is true when we are in the initialization state.
      * It is useful to use this when we have numSuperPeers=0, because
@@ -167,8 +166,8 @@ public class BuddyCast
     private long timeout;
 // ============================ memory =============================
 // =================================================================
-    private boolean preserveMemory = true;
-    final int initialCapacity = Math.min(5, maxConnT);
+    private boolean preserveMemory;
+    final int initialCapacity;
 // ======================== initialization =========================
 // =================================================================
     private int protocolID; // TODO: static
@@ -192,10 +191,11 @@ public class BuddyCast
         numMsgRandomPeers = Configuration.getInt(prefix + "." + PAR_NUMMSGRANDOMPEERS, 10);
         numMsgTasteBuddies = Configuration.getInt(prefix + "." + PAR_NUMMSGTASTEBUDDIES, 10);
         numMsgTBPrefs = Configuration.getInt(prefix + "." + PAR_NUMMSGTBPREFS, 20);
-        timeout = Configuration.getInt(prefix + "." + PAR_TIMEOUT, 5*60);
+        timeout = Configuration.getInt(prefix + "." + PAR_TIMEOUT, 5 * 60);
         preserveMemory = Configuration.getBoolean(prefix + "." + PAR_PRESERVEMEMORY, true);
         usePrefs = Configuration.getBoolean(prefix + "." + PAR_USEPREFS, false);
-        
+
+        initialCapacity = Math.min(5, maxConnT);
 
 
         /* Initialization of the collections */
@@ -684,9 +684,14 @@ public class BuddyCast
 //            return -1;
 //        }
 
+        // TODO: hack.
+        if(usePrefs){
+            return 0;
+        }
+
         /* TODO: this might need some refactoring */
-        if (!nodeToConnTime.containsKey(peerID) &&
-                !nodeToSimilarity.containsKey(peerID)) {
+        if (!nodeToConnTime.containsKey(peerID)
+                && !nodeToSimilarity.containsKey(peerID)) {
             nodeToConnTime.put(peerID, new Long(0));
             nodeToSimilarity.put(peerID, new Double(0));
             return 1;
@@ -744,8 +749,8 @@ public class BuddyCast
                     // TODO: same as above
                     double peerSim = getSimilarity(peer);
 
-                    if (peerSim < minSim ||
-                            (peerSim == minSim && peerTime < minPeerTime)) {
+                    if (peerSim < minSim
+                            || (peerSim == minSim && peerTime < minPeerTime)) {
                         minPeerID = peer;
                         minPeerTime = peerTime;
                         minSim = peerSim;
@@ -934,13 +939,16 @@ public class BuddyCast
                 if (!peer.equals(targetName)) {
                     /* Set up the taste buddy */
                     TasteBuddy tb = new TasteBuddy();
-                    if (!usePrefs) {
+                    /**
+                     * NOTE: When doing a recommendation,
+                     * we are using a precalculated similarity function
+                     */
+                    if (usePrefs) {
+                        tb.setPrefs(null);
+                    } else {
                         Deque<Integer> peerPrefs = peerPreferences.get(peer);
                         if (peerPrefs == null) { // TODO: this shouldn't happen
-                            /**
-                             * NOTE: When doing a recommendation,
-                             * we are using a precalculated similarity function
-                             */
+
                             peerPrefs = new ArrayDeque<Integer>(maxPeerPrefs);
                             addPreferences(peer, peerPrefs);
                             tb.setPrefs(
@@ -948,8 +956,6 @@ public class BuddyCast
                                     (ArrayDeque<Integer>) peerPrefs, numTBPs));
 
                         }
-                    } else {
-                        tb.setPrefs(null);
                     }
 
                     tb.setLastSeen(now);
@@ -1079,9 +1085,6 @@ public class BuddyCast
      * @return The preferences.
      */
     private Deque<Integer> getMyPreferences(int num) {
-        if (usePrefs) {
-            return null;
-        }
         if (num == 0) {
             return myPreferences;
         } else {
@@ -1114,7 +1117,7 @@ public class BuddyCast
         if (!peerPreferences.containsKey(peerID)) {
             peerPreferences.put(peerID,
                     new ArrayDeque<Integer>(maxPeerPrefs));
-        /* NOTE: maximum storage size is specified here */
+            /* NOTE: maximum storage size is specified here */
         }
 
         Deque<Integer> peerPrefList = peerPreferences.get(peerID);

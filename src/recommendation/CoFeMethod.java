@@ -34,6 +34,7 @@ public class CoFeMethod implements CDProtocol {
     //------------------------------------------------------------------------
     public CoFeMethod(String prefix) {
         mean = Configuration.getDouble(prefix + "." + PAR_MEAN);
+        // TODO: do we need sorted maps?
         itemRates = new TreeMap<Integer, Double>();
         evalRates = new TreeMap<Integer, Double>();
         predictions = new TreeMap<Integer, Double>();
